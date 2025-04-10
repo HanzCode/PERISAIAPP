@@ -11,7 +11,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph
+import androidx.navigation.compose.rememberNavController
+import com.example.perisaiapps.Navigation.AppNavigation
 import com.example.perisaiapps.Screen.HomeScreen
+import com.example.perisaiapps.Screen.LoginScreen
+import com.example.perisaiapps.ViewModel.LoginViewModel
 import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,9 +25,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PerisaiAppsTheme {
-                HomeScreen( )
-            }
+            val navController = rememberNavController()
+            AppNavigation()
+//            val loginViewModel = LoginViewModel()
+//            PerisaiAppsTheme {
+//                LoginScreen(navController, loginViewModel)
+//            }
         }
     }
 }

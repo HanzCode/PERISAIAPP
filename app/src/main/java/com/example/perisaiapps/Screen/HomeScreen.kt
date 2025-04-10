@@ -13,12 +13,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.perisaiapps.Component.GreetingSection
 import com.example.perisaiapps.Component.HorizontalCardSection
 import com.example.perisaiapps.Component.PeminatanSection
 
 @Composable
-fun HomeScreen(userName: String = "Farhan"){
+fun HomeScreen(userName: String = "Farhan", navController: NavController){
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -40,9 +41,4 @@ fun HomeScreen(userName: String = "Farhan"){
     }
 }
 
-@Preview
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen()
-}
 
