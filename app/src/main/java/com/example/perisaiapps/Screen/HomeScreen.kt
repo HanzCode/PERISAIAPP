@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.perisaiapps.Component.GreetingSection
 import com.example.perisaiapps.Component.HorizontalCardSection
+import com.example.perisaiapps.Component.PeminatanSection
 
 @Composable
 fun HomeScreen(userName: String = "Farhan"){
@@ -23,17 +24,19 @@ fun HomeScreen(userName: String = "Farhan"){
             .fillMaxSize()
             .background(Color(0xFF1B1533))
             .padding(16.dp)
+            .padding(top = 18.dp)
     ) {
         GreetingSection(userName)
         Spacer(modifier = Modifier.height(30.dp))
         HorizontalCardSection()
+//        Spacer(modifier = Modifier.height(16.dp))
+//        Text(
+//            text = "Peminatan",
+//            fontSize = 22.sp,
+//            color = Color.White
+//        )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Peminatan",
-            fontSize = 22.sp,
-            color = Color.White
-        )
-//        PeminatanSection()
+        PeminatanSection()
     }
 }
 
