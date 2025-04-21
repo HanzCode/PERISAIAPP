@@ -19,12 +19,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.Screen.HomeScreen
 import com.example.perisaiapps.Screen.LoginScreen
+import com.example.perisaiapps.Screen.MainScreen
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     // Tentukan layar awal di sini, mungkin perlu cek status login awal Firebase
-    val startDestination = "login" // Atau "home" jika sudah login
+    val startDestination = "home" // Atau "home" jika sudah login
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
@@ -32,7 +33,7 @@ fun AppNavigation() {
             LoginScreen(navController = navController)
         }
         composable("home") {
-            HomeScreen(navController = navController) // HomeScreen mungkin juga butuh NavController
+            MainScreen()
         }
     }
 }
