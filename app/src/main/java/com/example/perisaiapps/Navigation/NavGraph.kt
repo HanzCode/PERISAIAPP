@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.Screen.HomeScreen
+import com.example.perisaiapps.Screen.InfoLombaScreen
 import com.example.perisaiapps.Screen.LoginScreen
 import com.example.perisaiapps.Screen.MainScreen
 
@@ -34,6 +35,9 @@ fun AppNavigation() {
         }
         composable("home") {
             MainScreen()
+        }
+        composable("Lomba") {
+            InfoLombaScreen()
         }
     }
 }

@@ -23,7 +23,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") { HomeScreen(navController = NavController) }
-//            composable("lomba") { LombaScreen() }
+            composable("lomba") { InfoLombaScreen() }
 //            composable("mentor") { MentorScreen() }
         }
     }

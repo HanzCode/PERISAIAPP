@@ -2,13 +2,14 @@ package com.example.perisaiapps.Component
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.perisaiapps.Item.BottomNavItem
@@ -21,19 +22,18 @@ fun BottomBar(navController: NavController){
             icon = Icons.Default.Home,
             route = "home"
         ),BottomNavItem(
-            title = "Profile",
-            icon = Icons.Default.Home,
-            route = "profile"
+            title = "Info Lomba",
+            icon = Icons.Default.Notifications,
+            route = "Lomba"
         ),
         BottomNavItem(
-            title = "Settings",
-            icon = Icons.Default.Home,
-            route = "settings"
+            title = "Mentor",
+            icon = Icons.Default.Person,
+            route = "Mentor"
         )
     )
     NavigationBar(
         containerColor = Color(0xFF4B3D78),
-        tonalElevation = 0.dp
     ) {
         val currentDestination = navController.currentBackStackEntryAsState().value?.destination
 
@@ -69,5 +69,5 @@ fun BottomBar(navController: NavController){
             )
         }
     }
-
 }
+
