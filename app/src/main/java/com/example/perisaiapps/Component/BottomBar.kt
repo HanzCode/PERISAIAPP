@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.perisaiapps.Item.BottomNavItem
+import com.example.perisaiapps.Model.BottomNavItem
 
 @Composable
 fun BottomBar(navController: NavController){

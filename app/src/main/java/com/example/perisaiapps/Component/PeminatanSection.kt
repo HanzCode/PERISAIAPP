@@ -29,7 +29,7 @@ fun PeminatanSection() {
            text = "Peminatan",
            fontWeight = FontWeight.Bold,
            color = Color.White,
-           fontSize = 18.sp,
+           fontSize = 24.sp,
            modifier = Modifier.padding(bottom = 8.dp)
        )
 //    Spacer(modifier = Modifier.height(18.dp))
@@ -41,7 +41,7 @@ fun PeminatanSection() {
            verticalArrangement = Arrangement.spacedBy(12.dp),
            horizontalArrangement = Arrangement.spacedBy(12.dp)
        ) {
-           items(6) {
+           items(4) {
                Box(
                    modifier = Modifier
                        .aspectRatio(1f)

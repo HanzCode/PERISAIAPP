@@ -21,6 +21,7 @@ import com.example.perisaiapps.Screen.HomeScreen
 import com.example.perisaiapps.Screen.InfoLombaScreen
 import com.example.perisaiapps.Screen.LoginScreen
 import com.example.perisaiapps.Screen.MainScreen
+import com.example.perisaiapps.Screen.MentorListScreen
 
 @Composable
 fun AppNavigation() {
@@ -39,6 +40,10 @@ fun AppNavigation() {
         composable("Lomba") {
             InfoLombaScreen()
         }
+        composable("Mentor") {
+            MentorListScreen()
+        }
+
     }
 }
 

@@ -21,13 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
 fun InfoLombaScreen() {
     val lombaList = listOf(
-        "Lomba Poster yang diadakan oleh dikti",
+        "Lomba Poster Edukasi, dan Video Edukasi, peserta akan diajak untuk menggali kreativitas, berkolaborasi, serta berpikir analitis dalam menciptakan solusi bagi berbagai tantangan kesehatan mental di era modern",
         "Lomba Video Grafi yang diadakan oleh diktidadadadadada",
         "Lomba Poster yang diadakan oleh dikti",
         "Lomba Business plan yang diadakan oleh dikti",
@@ -52,11 +54,11 @@ fun InfoLombaScreen() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.Gray)
+                .height(2.dp)
+                .background(Color.White)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -65,12 +67,14 @@ fun InfoLombaScreen() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 5.dp)
 //                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
+//                            .size(80.dp)
+                            .width(145.dp)
+                            .height(165.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.LightGray)
                     ) {
@@ -82,11 +86,19 @@ fun InfoLombaScreen() {
                     Text(
                         text = poster,
                         color = Color.White,
-                        fontSize = 14.sp,
-                        modifier = Modifier.weight(1f)
+                        fontSize = 18.sp,
+                        maxLines = 7,
+                        overflow = TextOverflow.Ellipsis // Menampilkan titik tiga (...)
+//                        modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun InfoLombaScreenPreview() {
+    InfoLombaScreen()
 }

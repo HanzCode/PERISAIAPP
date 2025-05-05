@@ -24,7 +24,7 @@ fun MainScreen() {
         ) {
             composable("home") { HomeScreen(navController = NavController) }
             composable("lomba") { InfoLombaScreen() }
-//            composable("mentor") { MentorScreen() }
+            composable("mentor") { MentorListScreen() }
         }
     }
 }

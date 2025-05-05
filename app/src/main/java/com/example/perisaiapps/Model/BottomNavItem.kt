@@ -1,4 +1,4 @@
-package com.example.perisaiapps.Item
+package com.example.perisaiapps.Model
 
 import androidx.compose.ui.graphics.vector.ImageVector
 

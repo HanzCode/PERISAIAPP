@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "475303149402",
-    "project_id": "dbperisai",
-    "storage_bucket": "dbperisai.firebasestorage.app"
+    "project_number": "596661250966",
+    "project_id": "perisaidb",
+    "storage_bucket": "perisaidb.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:475303149402:android:bb80b7fb448fb1dd7e7d63",
+        "mobilesdk_app_id": "1:596661250966:android:68f076c7c2cef7c796cbb7",
         "android_client_info": {
           "package_name": "com.example.perisaiapps"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBtFavqPrOkmN6919RGrrtJtqRIMwiyVno"
+          "current_key": "AIzaSyA1U7LR9h6WBf7a6Xa1AiPNoNIl8RyuAQ0"
         }
       ],
       "services": {
