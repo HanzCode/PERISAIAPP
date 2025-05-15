@@ -40,11 +40,11 @@ fun MainScreen(mainNavController: NavController) {
                 // 2. InfoLombaScreen butuh mainNavController untuk ke DetailLombaScreen
                 InfoLombaScreen(navController = mainNavController)
             }
-//            composable("mentor") {
-//                // 2. MentorListScreen mungkin butuh mainNavController untuk ke detail mentor
-//                // Sesuaikan jika MentorListScreen tidak butuh navigasi keluar
-//                MentorListScreen(navController = mainNavController) // Asumsi butuh mainNavController
-//            }
+            composable("mentor") {
+                // 2. MentorListScreen mungkin butuh mainNavController untuk ke detail mentor
+                // Sesuaikan jika MentorListScreen tidak butuh navigasi keluar
+                MentorListScreen(navController = mainNavController) // Asumsi butuh mainNavController
+            }
             // Tambahkan tujuan bottom navigation lain di sini jika perlu
         }
     }

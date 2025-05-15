@@ -26,20 +26,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import androidx.navigation.NavController
 import com.example.perisaiapps.Component.MentorItem
 import com.example.perisaiapps.Model.Mentor
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.Date
 
 @Composable
-fun MentorListScreen() {
+fun MentorListScreen(navController: NavController) {
     // State untuk menyimpan list mentor
     var mentorList by remember { mutableStateOf<List<Mentor>>(emptyList()) }
     // State untuk menandakan sedang loading atau tidak
@@ -59,7 +56,7 @@ fun MentorListScreen() {
                     val data = result.documents.mapNotNull { document ->
                         document.toObject(Mentor::class.java)?.copy(
                             // Jika Anda ingin menyimpan ID dokumen (opsional):
-                            // id = document.id
+                             id = document.id
                         )
                     }
                     mentorList = data
@@ -129,12 +126,42 @@ fun MentorListScreen() {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp) // Beri jarak antar item
                     ) {
-                        items(mentorList, key = { mentor -> mentor.name /* Atau ID unik jika ada */ }) { mentor ->
-                            MentorItem(mentor = mentor)
+                        items(mentorList, key = { mentor -> mentor.id.takeIf { !it.isBlank() } ?: mentor.name }) { mentor ->
+                            // Pastikan ID mentor tidak kosong sebelum membuat item bisa diklik untuk navigasi
+                            if (!mentor.id.isBlank()) {
+                                MentorItem(
+                                    mentor = mentor,
+                                    // ===== TAMBAHKAN LAMBDA UNTUK onItemClick DI SINI =====
+                                    onItemClick = { mentorId -> // mentorId adalah mentor.id yang dikirim dari MentorItem
+                                        Log.d("MentorListScreen", "MentorItem clicked, ID: $mentorId. Navigating...")
+                                        try {
+                                            // Gunakan navController yang sudah ada di MentorListScreen
+                                            // (pastikan MentorListScreen menerima NavController dari MainScreen)
+                                            navController.navigate("detail_mentor/$mentorId")
+                                        } catch (e: Exception) {
+                                            Log.e("MentorListScreen", "Navigation failed for mentor ID $mentorId: ${e.message}", e)
+                                            // Anda bisa menambahkan Toast atau feedback lain ke pengguna jika navigasi gagal
+                                        }
+                                    }
+                                    // =====================================================
+                                )
+                            } else {
+                                // Jika ID mentor kosong, ini adalah masalah data atau logika fetch.
+                                // Untuk sementara, tampilkan item tapi tidak bisa diklik atau log warning.
+                                Log.w("MentorListScreen", "Mentor '${mentor.name}' has blank ID. Rendering non-clickable (or with no-op click).")
+                                MentorItem(
+                                    mentor = mentor,
+                                    onItemClick = {
+                                        // Tidak melakukan apa-apa atau log bahwa item tanpa ID diklik
+                                        Log.w("MentorListScreen", "Clicked MentorItem for '${mentor.name}' which has a blank ID.")
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+
         }
     }
 }

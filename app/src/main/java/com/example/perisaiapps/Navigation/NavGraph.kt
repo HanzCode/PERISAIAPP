@@ -1,5 +1,6 @@
 package com.example.perisaiapps.Navigation
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,19 +15,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.perisaiapps.Screen.DetailLombaScreen
-import com.example.perisaiapps.Screen.HomeScreen
+import com.example.perisaiapps.Screen.DetailMentorScreen
 import com.example.perisaiapps.Screen.InfoLombaScreen
 import com.example.perisaiapps.Screen.LoginScreen
 import com.example.perisaiapps.Screen.MainScreen
 import com.example.perisaiapps.Screen.MentorListScreen
 
+@SuppressLint("ComposableDestinationInComposeScope")
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -45,7 +46,7 @@ fun AppNavigation() {
             InfoLombaScreen(navController = navController)
         }
         composable("Mentor") {
-            MentorListScreen()
+            MentorListScreen(navController = navController)
         }
         composable(
             route = "detail_lomba/{lombaId}", // Definisikan rute dengan argumen {lombaId}
@@ -74,6 +75,22 @@ fun AppNavigation() {
                         Text("Kembali")
                     }
                 }
+
+            }
+
+        }
+        composable(
+            route = "detail_mentor/{mentorId}",
+            arguments = listOf(navArgument("mentorId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mentorId = backStackEntry.arguments?.getString("mentorId")
+            if (!mentorId.isNullOrEmpty()) {
+                DetailMentorScreen(navController = navController, mentorId = mentorId)
+            } else {
+                // Handle ID mentor tidak valid
+                Log.e("AppNavigation", "Error: Mentor ID is null or empty in detail_mentor route.")
+                // Tampilkan pesan error atau navigasi kembali
+                Text("Error: ID Mentor tidak valid.")
             }
         }
 
