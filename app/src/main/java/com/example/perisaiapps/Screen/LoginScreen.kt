@@ -1,5 +1,7 @@
 package com.example.perisaiapps.Screen
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -14,36 +17,76 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.perisaiapps.ViewModel.LoginUiState
-import com.example.perisaiapps.ViewModel.LoginViewModel
+import com.example.perisaiapps.viewmodel.UserRole
+import com.example.perisaiapps.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    loginViewModel: LoginViewModel = viewModel() // Dapatkan instance ViewModel
+    userViewModel: UserViewModel = viewModel() // Dapatkan instance ViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val loginState by loginViewModel.loginState.collectAsState()
-    var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) } // Loading untuk proses login
+    var loginErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+
+    // Amati peran pengguna dari ViewModel
+    val userRole by userViewModel.userRole
+    val isLoadingRole by userViewModel.isLoadingRole
+    val roleFetchError by userViewModel.errorMessage
 
     // Handle navigasi saat state Success
-    LaunchedEffect(loginState) {
-        if (loginState is LoginUiState.Success) {
-            navController.navigate("home") {
-                popUpTo("login") { inclusive = true } // Hapus login dari backstack
+    LaunchedEffect(userRole) {
+        if (!isLoadingRole && roleFetchError == null) { // Hanya navigasi jika tidak loading dan tidak ada error fetch peran
+            when (userRole) {
+                UserRole.ADMIN -> {
+                    navController.navigate("admin_dashboard_route") { // Rute baru untuk admin
+                        popUpTo("login") { inclusive = true } // Hapus login dari backstack
+                    }
+                }
+
+                UserRole.MENTOR -> {
+                    navController.navigate("mentor_dashboard_route") { // Rute baru untuk mentor
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+
+                UserRole.USER -> {
+                    navController.navigate("home") { // Rute "home" untuk user biasa (ke MainScreen)
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+
+                UserRole.UNKNOWN -> {
+                    // Jika peran UNKNOWN setelah fetch selesai (bukan saat inisialisasi),
+                    // mungkin ada masalah. Anda bisa tetap di halaman login atau tampilkan pesan.
+                    // Untuk saat ini, kita biarkan (tidak navigasi otomatis jika UNKNOWN pasca fetch)
+                    if (auth.currentUser != null && !isLoadingRole) { // Hanya tampilkan error jika user sudah login tapi peran unknown
+                        loginErrorMessage = roleFetchError ?: "Peran pengguna tidak dikenali."
+                    }
+                }
             }
+        }
+    }
+
+    LaunchedEffect(roleFetchError) {
+        roleFetchError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -74,26 +117,49 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Tampilkan pesan error jika ada
-        if (loginState is LoginUiState.Error) {
-            Text(
-                text = (loginState as LoginUiState.Error).message,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
 
-        // Tampilkan loading indicator jika sedang loading
-        if (loginState is LoginUiState.Loading) {
-            CircularProgressIndicator()
-        } else {
-            Button(
-                onClick = { loginViewModel.loginUser(email, password) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        Button(
+            onClick = {
+                if (email.isBlank() || password.isBlank()) {
+                    loginErrorMessage = "Email dan Password tidak boleh kosong."
+                    return@Button
+                }
+                isLoading = true
+                loginErrorMessage = null
+                auth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.d("LoginScreen", "Login berhasil. Fetching user role...")
+                            // JANGAN LANGSUNG NAVIGASI DI SINI
+                            // Panggil fetchUserRole, LaunchedEffect di atas akan menangani navigasi
+                            userViewModel.fetchUserRole()
+                            // isLoading akan di-set false oleh LaunchedEffect setelah navigasi atau jika peran unknown
+                        } else {
+                            Log.w("LoginScreen", "Login gagal: ", task.exception)
+                            loginErrorMessage = task.exception?.message ?: "Login gagal."
+                            isLoading = false
+                        }
+                        // isLoading untuk tombol login di set false setelah fetchUserRole mulai atau jika login gagal
+                        // isLoadingRole dari ViewModel akan menangani tampilan loading saat fetch peran
+                    }
+            },
+            enabled = !isLoading && !isLoadingRole // Tombol disable saat login atau fetch role
+        ) {
+            if (isLoading || isLoadingRole) { // Tampilkan loading jika salah satu proses berjalan
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
                 Text("Login")
             }
         }
+        loginErrorMessage?.let {
+            Text(
+                it,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
     }
 }
+
+
 

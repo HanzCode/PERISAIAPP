@@ -3,6 +3,7 @@ package com.example.perisaiapps.Navigation
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,19 +21,23 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
+import com.example.perisaiapps.Screen.AdminScreen.AdminManageMentorsScreen
 import com.example.perisaiapps.Screen.DetailLombaScreen
 import com.example.perisaiapps.Screen.DetailMentorScreen
 import com.example.perisaiapps.Screen.InfoLombaScreen
 import com.example.perisaiapps.Screen.LoginScreen
 import com.example.perisaiapps.Screen.MainScreen
+import com.example.perisaiapps.Screen.Mentor.MentorDashboardScreen
 import com.example.perisaiapps.Screen.MentorListScreen
+import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
 
 @SuppressLint("ComposableDestinationInComposeScope")
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     // Tentukan layar awal di sini, mungkin perlu cek status login awal Firebase
-    val startDestination = "home" // Atau "home" jika sudah login
+    val startDestination = "login" // Atau "home" jika sudah login
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
@@ -41,6 +46,16 @@ fun AppNavigation() {
         }
         composable("home") {
             MainScreen(mainNavController = navController)
+        }
+        composable("admin_dashboard_route") {
+            // Anda akan membuat AdminDashboardScreen ini
+            AdminDashboardScreen(navController = navController)
+        }
+
+        // 3. Tambahkan rute untuk Mentor
+        composable("mentor_dashboard_route") {
+            // Anda akan membuat MentorDashboardScreen ini
+            MentorDashboardScreen(navController = navController)
         }
         composable("Lomba") {
             InfoLombaScreen(navController = navController)
@@ -93,7 +108,26 @@ fun AppNavigation() {
                 Text("Error: ID Mentor tidak valid.")
             }
         }
+        // Rute Admin
+        composable(
+            route = "add_edit_mentor?mentorId={mentorId}", // mentorId opsional
+            arguments = listOf(navArgument("mentorId") { nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val mentorId = backStackEntry.arguments?.getString("mentorId")
+            AddEditMentorScreen(navController = navController, mentorId = mentorId)
+        }
+        composable("admin_manage_mentors_route") {
+            AdminManageMentorsScreen(navController = navController)
+        }
 
+// Juga siapkan rute untuk kelola lomba (meskipun layarnya belum dibuat)
+        composable("admin_manage_lomba_route") {
+            // Nantinya akan ke AdminManageLombaScreen(navController = navController)
+            // Untuk sekarang bisa ke placeholder:
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Halaman Kelola Lomba (Segera Hadir)")
+            }
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentId
 data class Mentor(
     @DocumentId
     val id: String = "",
+    val userId: String = "",
     val name: String = "",
     val peminatan: String = "",
     val Deskripsi: String = "",

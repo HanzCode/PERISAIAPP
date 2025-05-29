@@ -34,7 +34,7 @@ fun MainScreen(mainNavController: NavController) {
                 // - Jika perlu pindah tab bottom nav -> bottomNavController
                 // - Jika tidak perlu navigasi -> tidak perlu parameter NavController
                 // Contoh: Meneruskan bottomNavController jika perlu pindah tab dari dalam HomeScreen
-                HomeScreen(navController = bottomNavController)
+                HomeScreen(navController = mainNavController)
             }
             composable("lomba") {
                 // 2. InfoLombaScreen butuh mainNavController untuk ke DetailLombaScreen
