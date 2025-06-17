@@ -34,7 +34,7 @@ fun MentorItem(
     // <-- 2. TAMBAHKAN PARAMETER onItemClick -->
     onItemClick: (String) -> Unit
 ) {
-    val isReady = mentor.availableUntil?.toDate()?.after(Date()) == true
+    val isReady = mentor.isAvailable
 
     Row(
         modifier = Modifier
@@ -58,8 +58,8 @@ fun MentorItem(
             model = mentor.photoUrl,
             contentDescription = "Foto Mentor ${mentor.name}",
             modifier = Modifier
-                .height(159.dp) // Mungkin terlalu besar, sesuaikan jika perlu jadi misal 80.dp
-                .width(139.dp)  // Mungkin terlalu besar, sesuaikan jika perlu jadi misal 80.dp
+                .height(159.dp)
+                .width(139.dp)
                 .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
@@ -78,7 +78,7 @@ fun MentorItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             Text(
-                text = if (isReady) "Ready" else "Not Ready",
+                text = if (isReady) "Bersedia" else "Sibuk",
                 color = Color.White,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium

@@ -1,6 +1,5 @@
 package com.example.perisaiapps.Model
 
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 
 data class Mentor(
@@ -9,7 +8,8 @@ data class Mentor(
     val userId: String = "",
     val name: String = "",
     val peminatan: String = "",
-    val Deskripsi: String = "",
+    val deskripsi: String = "",
     val photoUrl: String = "",
-    val availableUntil: Timestamp? = null
+    val isAvailable : Boolean = true,
+    val achievements: List<String>? = null
 )
