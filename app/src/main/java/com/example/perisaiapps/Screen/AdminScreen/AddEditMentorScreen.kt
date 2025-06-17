@@ -3,7 +3,6 @@ package com.example.perisaiapps.Screen.admin
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import android.widget.Switch
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -76,7 +75,7 @@ fun AddEditMentorScreen(
     var name by remember { mutableStateOf("") }
     var peminatan by remember { mutableStateOf("") }
     var deskripsi by remember { mutableStateOf("") }
-    var isAvailable by remember { mutableStateOf(true) }
+    var bersediaKah by remember { mutableStateOf(true) }
     var mentorEmail by remember { mutableStateOf("") }
     var mentorPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -105,7 +104,7 @@ fun AddEditMentorScreen(
                         peminatan = mentor.peminatan
                         deskripsi = mentor.deskripsi
                         existingPhotoUrl = mentor.photoUrl.ifBlank { null }
-                        isAvailable = mentor.isAvailable
+                        bersediaKah = mentor.bersediaKah
                         achievementsList = mentor.achievements ?: emptyList()
                     }
                     isLoading = false
@@ -258,13 +257,13 @@ fun AddEditMentorScreen(
                     onClick = { imagePickerLauncher.launch("image/*") }
                 )
                 AvailabilitySwitch(
-                    isAvailable = isAvailable,
+                    bersediaKah = bersediaKah,
 
-                    onCheckedChange = { isAvailable = it },
+                    onCheckedChange = { bersediaKah = it },
 
                 )
             }
-            Log.d("isAvailable","${isAvailable}")
+            Log.d("bersediaKah","${bersediaKah}")
 
             // Tombol Simpan/Update
             Spacer(Modifier.height(24.dp))
@@ -288,7 +287,7 @@ fun AddEditMentorScreen(
                         name = name.trim(),
                         peminatan = peminatan.trim(),
                         deskripsi = deskripsi.trim(),
-                        isAvailable = isAvailable,
+                        bersediaKah = bersediaKah,
                         achievements = achievementsList,
                         selectedImageUri = selectedImageUri,
                         existingPhotoUrl = existingPhotoUrl,
@@ -420,19 +419,19 @@ private fun ProfileImagePicker(
 
 @Composable
 private fun AvailabilitySwitch(
-    isAvailable: Boolean,
+    bersediaKah: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Status Ketersediaan", style = MaterialTheme.typography.bodyMedium, color = textColorSecondary)
         Text(
-            text = if (isAvailable) "Bersedia" else "Sibuk",
+            text = if (bersediaKah) "Bersedia" else "Sibuk",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isAvailable) successColor else errorColor
+            color = if (bersediaKah) successColor else errorColor
         )
         Switch(
-            checked = isAvailable,
+            checked = bersediaKah,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
@@ -451,7 +450,7 @@ private fun AvailabilitySwitch(
 
 private fun handleSaveMentor(
     isEditMode: Boolean, mentorId: String?, email: String, password: String, name: String, peminatan: String,
-    deskripsi: String, isAvailable: Boolean, achievements: List<String>, selectedImageUri: Uri?,
+    deskripsi: String, bersediaKah: Boolean, achievements: List<String>, selectedImageUri: Uri?,
     existingPhotoUrl: String?, context: Context, onSuccess: () -> Unit, onFailure: (Exception) -> Unit
 ) {
     if (isEditMode) {
@@ -459,16 +458,16 @@ private fun handleSaveMentor(
             onFailure(Exception("ID Mentor tidak valid untuk mode edit."))
             return
         }
-        updateExistingMentor(mentorId, name, peminatan, deskripsi, isAvailable, achievements, selectedImageUri, existingPhotoUrl, context, onSuccess, onFailure)
-        Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${isAvailable},${achievements}")
+        updateExistingMentor(mentorId, name, peminatan, deskripsi, bersediaKah, achievements, selectedImageUri, existingPhotoUrl, context, onSuccess, onFailure)
+        Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${bersediaKah},${achievements}")
     } else {
-        addNewMentor(email, password, name, peminatan, deskripsi, isAvailable, achievements, selectedImageUri, context, onSuccess, onFailure)
-        Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${isAvailable},${achievements}")
+        addNewMentor(email, password, name, peminatan, deskripsi, bersediaKah, achievements, selectedImageUri, context, onSuccess, onFailure)
+        Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${bersediaKah},${achievements}")
     }
 }
 
 private fun addNewMentor(
-    email: String, password: String, name: String, peminatan: String, deskripsi: String, isAvailable: Boolean,
+    email: String, password: String, name: String, peminatan: String, deskripsi: String, bersediaKah: Boolean,
     achievements: List<String>, selectedImageUri: Uri?, context: Context, onSuccess: () -> Unit, onFailure: (Exception) -> Unit
 ) {
     FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
@@ -485,8 +484,8 @@ private fun addNewMentor(
                     return@createUserProfile
                 }
                 Log.d("AddMentor", "2. Dokumen di 'users' berhasil dibuat.")
-                Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${isAvailable},${achievements}")
-                uploadImageAndCreateMentorProfile(newUserId, name, peminatan, deskripsi, isAvailable, achievements, selectedImageUri, context, onSuccess, onFailure)
+                Log.d("apalah", "DAta :,${name},${peminatan},${deskripsi},${bersediaKah},${achievements}")
+                uploadImageAndCreateMentorProfile(newUserId, name, peminatan, deskripsi, bersediaKah, achievements, selectedImageUri, context, onSuccess, onFailure)
             }
         }
         .addOnFailureListener { authError ->
@@ -496,7 +495,7 @@ private fun addNewMentor(
 }
 
 private fun updateExistingMentor(
-    mentorId: String, name: String, peminatan: String, deskripsi: String, isAvailable: Boolean,
+    mentorId: String, name: String, peminatan: String, deskripsi: String, bersediaKah: Boolean,
     achievements: List<String>, selectedImageUri: Uri?, existingPhotoUrl: String?, context: Context,
     onSuccess: () -> Unit, onFailure: (Exception) -> Unit
 ) {
@@ -510,7 +509,7 @@ private fun updateExistingMentor(
             "name" to name,
             "peminatan" to peminatan,
             "deskripsi" to deskripsi,
-            "isAvailable" to isAvailable,
+            "bersediaKah" to bersediaKah,
             "photoUrl" to (finalPhotoUrl ?: ""),
             "achievements" to achievements
         )
@@ -547,7 +546,7 @@ private fun createUserProfile(uid: String, email: String, name: String, onComple
 }
 
 private fun uploadImageAndCreateMentorProfile(
-    userId: String, name: String, peminatan: String, deskripsi: String, isAvailable: Boolean,
+    userId: String, name: String, peminatan: String, deskripsi: String, bersediaKah: Boolean,
     achievements: List<String>, selectedImageUri: Uri?, context: Context, onSuccess: () -> Unit, onFailure: (Exception) -> Unit
 ) {
     getFinalPhotoUrl(selectedImageUri, null, context) { finalPhotoUrl, error ->
@@ -561,19 +560,19 @@ private fun uploadImageAndCreateMentorProfile(
             peminatan = peminatan,
             deskripsi = deskripsi,
             photoUrl = finalPhotoUrl ?: "",
-            isAvailable = isAvailable,
+            bersediaKah = bersediaKah,
             achievements = achievements
         )
         FirebaseFirestore.getInstance().collection("Mentor").add(mentorProfile)
             .addOnSuccessListener {
                 Log.d("AddMentor", "3. Profil Mentor berhasil dibuat di koleksi 'Mentor'.")
-                Log.d("AddMentor", "Mentor ID: ${userId},${name},${peminatan},${deskripsi},${finalPhotoUrl},${isAvailable},${achievements}")
+                Log.d("AddMentor", "Mentor ID: ${userId},${name},${peminatan},${deskripsi},${finalPhotoUrl},${bersediaKah},${achievements}")
 
                 onSuccess()
             }
             .addOnFailureListener {
                 Log.w("AddMentor", "Gagal membuat profil di koleksi 'Mentor'.", it)
-                Log.d("AddMentor", "Mentor ID: ${userId},${name},${peminatan},${deskripsi},${finalPhotoUrl},${isAvailable},${achievements}")
+                Log.d("AddMentor", "Mentor ID: ${userId},${name},${peminatan},${deskripsi},${finalPhotoUrl},${bersediaKah},${achievements}")
 
                 onFailure(it)
             }

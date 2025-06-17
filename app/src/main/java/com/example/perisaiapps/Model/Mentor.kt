@@ -10,6 +10,6 @@ data class Mentor(
     val peminatan: String = "",
     val deskripsi: String = "",
     val photoUrl: String = "",
-    val isAvailable : Boolean = true,
+    val bersediaKah : Boolean = true,
     val achievements: List<String>? = null
 )

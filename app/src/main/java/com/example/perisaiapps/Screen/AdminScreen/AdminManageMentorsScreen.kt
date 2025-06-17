@@ -235,8 +235,8 @@ private fun AdminMentorListItem(
                 Text(mentor.peminatan, color = textColorSecondary, style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (mentor.isAvailable) "Bersedia" else "Sibuk",
-                    color = if (mentor.isAvailable) successColor else errorColor,
+                    text = if (mentor.bersediaKah) "Bersedia" else "Sibuk",
+                    color = if (mentor.bersediaKah) successColor else errorColor,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold
                 )

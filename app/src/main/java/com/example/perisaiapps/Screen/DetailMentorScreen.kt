@@ -58,7 +58,7 @@ fun DetailMentorScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // State untuk edit langsung di halaman ini
-    var currentAvailability by remember(mentorDetail?.isAvailable) { mutableStateOf(mentorDetail?.isAvailable ?: true) }
+    var currentAvailability by remember(mentorDetail?.bersediaKah) { mutableStateOf(mentorDetail?.bersediaKah ?: true) }
     var showEditDeskripsiDialog by remember { mutableStateOf(false) }
     var tempDeskripsi by remember(mentorDetail?.deskripsi) { mutableStateOf(mentorDetail?.deskripsi ?: "") }
 
@@ -76,7 +76,7 @@ fun DetailMentorScreen(
                         val fetchedMentor = document.toObject(Mentor::class.java)
                         mentorDetail = fetchedMentor
                         fetchedMentor?.let {
-                            currentAvailability = it.isAvailable
+                            currentAvailability = it.bersediaKah
                             tempDeskripsi = it.deskripsi // Inisialisasi tempDeskripsi
                         }
                         Log.d("DetailMentorScreen", "Data mentor ditemukan: ${mentorDetail?.name}")
@@ -140,12 +140,12 @@ fun DetailMentorScreen(
                         onAvailabilityChange = { newStatus ->
                             updateMentorSingleField(
                                 mentorId = mentor.id,
-                                fieldName = "isAvailable", // Nama field di Firestore
+                                fieldName = "bersediaKah", // Nama field di Firestore
                                 newValue = newStatus,
                                 context = context,
                                 onSuccess = {
                                     currentAvailability = newStatus
-                                    mentorDetail = mentorDetail?.copy(isAvailable = newStatus)
+                                    mentorDetail = mentorDetail?.copy(bersediaKah = newStatus)
                                     Toast.makeText(context, "Status ketersediaan diperbarui", Toast.LENGTH_SHORT).show()
                                 },
                                 onFailure = { errorMsg ->
@@ -465,7 +465,7 @@ private fun DetailMentorScreenContentPreviewFull() {
                     peminatan = "Machine Learning & AI",
                     deskripsi = "Seorang akademisi dan praktisi di bidang AI dengan pengalaman industri. Telah membimbing berbagai proyek inovatif. Asal dari Universitas Coding Nusantara.",
                     photoUrl = "",
-                    isAvailable = true,
+                    bersediaKah = true,
                     achievements = listOf("Best Paper Award ICCE 2024", "Top Innovator Grant 2023", "Speaker di AI Summit Global")
                 ),
                 currentAvailabilityFromState = true,

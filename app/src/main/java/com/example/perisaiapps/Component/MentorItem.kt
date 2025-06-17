@@ -34,7 +34,7 @@ fun MentorItem(
     // <-- 2. TAMBAHKAN PARAMETER onItemClick -->
     onItemClick: (String) -> Unit
 ) {
-    val isReady = mentor.isAvailable
+    val isReady = mentor.bersediaKah
 
     Row(
         modifier = Modifier
