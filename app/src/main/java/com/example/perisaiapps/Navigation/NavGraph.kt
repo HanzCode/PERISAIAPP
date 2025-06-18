@@ -21,7 +21,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.perisaiapps.Screen.AdminScreen.AddEditLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
+import com.example.perisaiapps.Screen.AdminScreen.AdminManageLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageMentorsScreen
 import com.example.perisaiapps.Screen.DetailLombaScreen
 import com.example.perisaiapps.Screen.DetailMentorScreen
@@ -119,15 +121,18 @@ fun AppNavigation() {
         composable("admin_manage_mentors_route") {
             AdminManageMentorsScreen(navController = navController)
         }
-
-// Juga siapkan rute untuk kelola lomba (meskipun layarnya belum dibuat)
         composable("admin_manage_lomba_route") {
-            // Nantinya akan ke AdminManageLombaScreen(navController = navController)
-            // Untuk sekarang bisa ke placeholder:
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Halaman Kelola Lomba (Segera Hadir)")
-            }
+            AdminManageLombaScreen(navController = navController)
         }
+        composable(
+            route = "add_edit_lomba?lombaId={lombaId}",
+            arguments = listOf(navArgument("lombaId") { nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val lombaId = backStackEntry.arguments?.getString("lombaId")
+            AddEditLombaScreen(navController = navController, lombaId = lombaId)
+        }
+
     }
 }
+
 

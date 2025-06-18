@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +45,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.perisaiapps.ViewModel.AdminDashboardViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 // --- Palet Warna (konsisten dengan tema gelap) ---
@@ -60,7 +66,14 @@ private data class AdminActionItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminDashboardScreen(navController: NavController) {
+fun AdminDashboardScreen(
+    navController: NavController,
+    viewModel: AdminDashboardViewModel = viewModel()) {
+
+    val mentorCount by viewModel.mentorCount.collectAsState()
+    val lombaCount by viewModel.lombaCount.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     // Daftar menu utama untuk admin
     val actionItems = listOf(
@@ -97,6 +110,10 @@ fun AdminDashboardScreen(navController: NavController) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = textColorSecondary
             )
+            errorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -105,9 +122,18 @@ fun AdminDashboardScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // TODO: Ganti angka "15" dan "24" dengan data nyata dari Firestore
-                DashboardSummaryCard(label = "Total Mentor", count = "15", icon = Icons.Default.Person, modifier = Modifier.weight(1f))
-                DashboardSummaryCard(label = "Total Lomba", count = "24", icon = Icons.Default.Info, modifier = Modifier.weight(1f))
+                DashboardSummaryCard(
+                    label = "Total Mentor",
+                    count = if (isLoading) "..." else mentorCount.toString(),
+                    icon = Icons.Default.People,
+                    modifier = Modifier.weight(1f)
+                )
+                DashboardSummaryCard(
+                    label = "Total Lomba",
+                    count = if (isLoading) "..." else lombaCount.toString(),
+                    icon = Icons.Default.Info,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
