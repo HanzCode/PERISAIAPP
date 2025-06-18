@@ -8,8 +8,7 @@ class MyApplication : Application() {
         super.onCreate()
 
         // Inisialisasi Cloudinary MediaManager
-        // Kita tidak perlu menyertakan API Key atau Secret di sini jika menggunakan unsigned upload.
-        // Cukup init dengan application context. Cloud Name akan diset saat upload atau global.
+
         try {
             MediaManager.init(this)
             // Anda bisa juga set cloud name secara global jika mau:

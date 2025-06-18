@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.perisaiapps.Screen.AdminScreen.AddEditLombaScreen
+import com.example.perisaiapps.Screen.AdminScreen.AddUserScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageMentorsScreen
@@ -62,6 +63,9 @@ fun AppNavigation() {
         }
         composable("Lomba") {
             InfoLombaScreen(navController = navController)
+        }
+        composable("add_user_route") {
+            AddUserScreen(navController = navController)
         }
         composable("Mentor") {
             MentorListScreen(navController = navController)

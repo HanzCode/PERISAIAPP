@@ -30,6 +30,11 @@ fun BottomBar(navController: NavController){
             title = "Mentor",
             icon = Icons.Default.Person,
             route = "Mentor"
+        ),
+        BottomNavItem(
+            title = "Profile",
+            icon = Icons.Default.Person,
+            route = "Profile"
         )
     )
     NavigationBar(

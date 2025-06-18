@@ -11,6 +11,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
@@ -70,11 +71,21 @@ fun AdminManageUsersScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
+
             TopAppBar(
                 title = { Text("Kelola Pengguna", color = textColorPrimary) },
                 navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali", tint = textColorPrimary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = darkBackground)
             )
+                 },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("add_user_route") }, // Navigasi ke rute baru
+                containerColor = accentColor,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.Add, "Tambah Pengguna Baru")
+            }
         },
         containerColor = darkBackground
     ) { paddingValues ->

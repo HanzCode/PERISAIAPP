@@ -7,5 +7,6 @@ data class UserProfile(
     val uid: String = "",
     val displayName: String = "",
     val email: String = "",
-    val role: String = ""
+    val role: String = "",
+    val photoUrl: String = ""
 )

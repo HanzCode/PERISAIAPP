@@ -28,24 +28,17 @@ fun MainScreen(mainNavController: NavController) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                // 3. Perbaiki panggilan HomeScreen.
-                // Tentukan NavController mana yang dibutuhkan HomeScreen:
-                // - Jika perlu navigasi ke detail (di luar MainScreen) -> mainNavController
-                // - Jika perlu pindah tab bottom nav -> bottomNavController
-                // - Jika tidak perlu navigasi -> tidak perlu parameter NavController
-                // Contoh: Meneruskan bottomNavController jika perlu pindah tab dari dalam HomeScreen
                 HomeScreen(navController = mainNavController)
             }
             composable("lomba") {
-                // 2. InfoLombaScreen butuh mainNavController untuk ke DetailLombaScreen
                 InfoLombaScreen(navController = mainNavController)
             }
             composable("mentor") {
-                // 2. MentorListScreen mungkin butuh mainNavController untuk ke detail mentor
-                // Sesuaikan jika MentorListScreen tidak butuh navigasi keluar
-                MentorListScreen(navController = mainNavController) // Asumsi butuh mainNavController
+                MentorListScreen(navController = mainNavController) //
             }
-            // Tambahkan tujuan bottom navigation lain di sini jika perlu
+            composable("profile") {
+                ProfileScreen(navController = mainNavController)
+            }
         }
     }
 }
