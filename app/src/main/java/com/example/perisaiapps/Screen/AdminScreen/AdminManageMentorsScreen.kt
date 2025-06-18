@@ -66,22 +66,23 @@ fun AdminManageMentorsScreen(navController: NavController) {
     }
 
     // Fungsi untuk menghapus mentor
-    val deleteMentorAction: (String) -> Unit = { mentorId ->
+    val deleteMentorAction: (Mentor) -> Unit = { mentorData ->
         deleteMentor(
-            mentorId = mentorId,
+            mentor = mentorData,
             onSuccess = {
                 Toast.makeText(context, "Mentor berhasil dihapus", Toast.LENGTH_SHORT).show()
-                mentorList = mentorList.filterNot { it.id == mentorId }
-                mentorToDelete = null // Tutup dialog
+                mentorList = mentorList.filterNot { it.id == mentorData.id }
+                mentorToDelete = null // <-- Hapus `this.`
             },
             onFailure = { error ->
                 Toast.makeText(context, "Gagal menghapus: ${error.message}", Toast.LENGTH_LONG).show()
-                mentorToDelete = null // Tutup dialog
+                mentorToDelete = null // <-- Hapus `this.`
             }
         )
     }
 
     Scaffold(
+
         topBar = {
             TopAppBar(
                 title = { Text("Kelola Mentor", color = textColorPrimary) },
@@ -92,7 +93,15 @@ fun AdminManageMentorsScreen(navController: NavController) {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = darkBackground)
             )
+            if (mentorToDelete != null) {
+                DeleteConfirmationDialog(
+                    mentorName = mentorToDelete!!.name,
+                    onConfirm = { deleteMentorAction(mentorToDelete!!) }, // <-- Kirim seluruh objek mentorToDelete
+                    onDismiss = { mentorToDelete = null }
+                )
+            }
         },
+
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate("add_edit_mentor") },
@@ -195,7 +204,7 @@ fun AdminManageMentorsScreen(navController: NavController) {
         if (mentorToDelete != null) {
             DeleteConfirmationDialog(
                 mentorName = mentorToDelete!!.name,
-                onConfirm = { deleteMentorAction(mentorToDelete!!.id) },
+                onConfirm = { deleteMentorAction(mentorToDelete!!) },
                 onDismiss = { mentorToDelete = null }
             )
         }
@@ -284,17 +293,40 @@ private fun DeleteConfirmationDialog(
 }
 
 // Fungsi helper untuk menghapus dokumen mentor dari Firestore
-private fun deleteMentor(mentorId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+private fun deleteMentor(mentor: Mentor,
+                         onSuccess: () -> Unit,
+                         onFailure: (Exception) -> Unit)
+{
+
     // TODO: Implementasikan logika untuk menghapus foto mentor dari Cloudinary jika diperlukan.
     // Ini biasanya memerlukan backend atau Cloud Function untuk keamanan.
-    FirebaseFirestore.getInstance().collection("Mentor").document(mentorId)
-        .delete()
+    val db = FirebaseFirestore.getInstance()
+
+    // Ambil ID dokumen dari koleksi Mentor dan koleksi users
+    val mentorDocRef = db.collection("Mentor").document(mentor.id)
+    val userDocRef = db.collection("users").document(mentor.userId)
+
+    db.runBatch { batch ->
+        batch.delete(mentorDocRef) // Hapus dokumen dari koleksi 'Mentor'
+        batch.delete(userDocRef)   // Hapus dokumen dari koleksi 'users'
+    }
         .addOnSuccessListener {
-            Log.d("FirestoreDelete", "Mentor document $mentorId successfully deleted.")
+            Log.d("FirestoreDelete", "Dokumen Mentor dan User untuk ${mentor.name} berhasil dihapus.")
+            // TODO: Implementasikan logika untuk menghapus foto dari Cloudinary (memerlukan backend/Cloud Function)
             onSuccess()
         }
         .addOnFailureListener { e ->
-            Log.e("FirestoreDelete", "Error deleting mentor document $mentorId", e)
+            Log.e("FirestoreDelete", "Gagal menghapus dokumen Mentor dan User.", e)
             onFailure(e)
         }
 }
+//    FirebaseFirestore.getInstance().collection("Mentor").document(mentorId)
+//        .delete()
+//        .addOnSuccessListener {
+//            Log.d("FirestoreDelete", "Mentor document $mentorId successfully deleted.")
+//            onSuccess()
+//        }
+//        .addOnFailureListener { e ->
+//            Log.e("FirestoreDelete", "Error deleting mentor document $mentorId", e)
+//            onFailure(e)
+//        }

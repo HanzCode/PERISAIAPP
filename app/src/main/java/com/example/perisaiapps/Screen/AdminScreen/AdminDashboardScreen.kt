@@ -80,7 +80,6 @@ fun AdminDashboardScreen(
         AdminActionItem("Kelola Mentor", Icons.Default.AccountCircle, "admin_manage_mentors_route"),
         AdminActionItem("Kelola Lomba", Icons.Default.Create, "admin_manage_lomba_route"),
         AdminActionItem("Kelola Pengguna", Icons.Default.Person, "admin_manage_users_route"), // Contoh
-//        AdminActionItem("Laporan & Analitik", Icons.Default.BarChart, "admin_analytics_route") // Contoh
     )
 
     Scaffold(

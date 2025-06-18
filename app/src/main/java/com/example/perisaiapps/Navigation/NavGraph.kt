@@ -25,6 +25,7 @@ import com.example.perisaiapps.Screen.AdminScreen.AddEditLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageMentorsScreen
+import com.example.perisaiapps.Screen.AdminScreen.AdminManageUsersScreen
 import com.example.perisaiapps.Screen.DetailLombaScreen
 import com.example.perisaiapps.Screen.DetailMentorScreen
 import com.example.perisaiapps.Screen.InfoLombaScreen
@@ -120,6 +121,9 @@ fun AppNavigation() {
         }
         composable("admin_manage_mentors_route") {
             AdminManageMentorsScreen(navController = navController)
+        }
+        composable("admin_manage_users_route") {
+            AdminManageUsersScreen(navController = navController)
         }
         composable("admin_manage_lomba_route") {
             AdminManageLombaScreen(navController = navController)
