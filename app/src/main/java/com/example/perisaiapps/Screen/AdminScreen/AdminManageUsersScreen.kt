@@ -22,11 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.perisaiapps.Model.Mentor
 import com.example.perisaiapps.Model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -69,18 +72,55 @@ fun AdminManageUsersScreen(navController: NavController) {
             }
     }
 
+    // Tampilkan dialog di luar Scaffold agar bisa jadi overlay
+    if (userToEditRole != null) {
+        ChangeRoleDialog(
+            user = userToEditRole!!,
+            onDismiss = { userToEditRole = null },
+            onRoleChange = { newRole ->
+                changeUserRoleAndHandleProfile(
+                    context = context,
+                    user = userToEditRole!!,
+                    newRole = newRole,
+                    onSuccess = {
+                        userList = userList.map {
+                            if (it.uid == userToEditRole!!.uid) it.copy(role = newRole) else it
+                        }
+                        userToEditRole = null
+                    }
+                )
+            }
+        )
+    }
+
+    if (userToDelete != null) {
+        DeleteConfirmationDialog(
+            userName = userToDelete!!.displayName,
+            onConfirm = {
+                deleteUser(
+                    context = context,
+                    user = userToDelete!!,
+                    onSuccess = {
+                        userList = userList.filterNot { it.uid == userToDelete!!.uid }
+                        userToDelete = null
+                    }
+                )
+            },
+            onDismiss = { userToDelete = null }
+        )
+    }
+
     Scaffold(
         topBar = {
-
             TopAppBar(
                 title = { Text("Kelola Pengguna", color = textColorPrimary) },
                 navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali", tint = textColorPrimary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = darkBackground)
             )
-                 },
+        },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("add_user_route") }, // Navigasi ke rute baru
+                onClick = { navController.navigate("add_user_route") },
                 containerColor = accentColor,
                 contentColor = Color.White
             ) {
@@ -95,12 +135,9 @@ fun AdminManageUsersScreen(navController: NavController) {
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            // Header
             Text("Daftar Pengguna Aplikasi", style = MaterialTheme.typography.titleLarge, color = textColorPrimary, modifier = Modifier.padding(top = 8.dp))
             Text("Ubah peran atau hapus pengguna dari sistem.", style = MaterialTheme.typography.bodyMedium, color = textColorSecondary)
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -122,7 +159,6 @@ fun AdminManageUsersScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Konten utama
             when {
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = accentColor) }
                 errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Error: $errorMessage", color = errorColor) }
@@ -137,7 +173,7 @@ fun AdminManageUsersScreen(navController: NavController) {
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 16.dp)
+                            contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
                             items(filteredList, key = { it.uid }) { user ->
                                 AdminUserListItem(
@@ -151,46 +187,9 @@ fun AdminManageUsersScreen(navController: NavController) {
                 }
             }
         }
-
-        // Dialog untuk Mengubah Peran (ditampilkan jika userToEditRole tidak null)
-        if (userToEditRole != null) {
-            ChangeRoleDialog(
-                user = userToEditRole!!,
-                onDismiss = { userToEditRole = null },
-                onRoleChange = { newRole ->
-                    updateUserRole(
-                        context = context,
-                        uid = userToEditRole!!.uid,
-                        newRole = newRole,
-                        onSuccess = {
-                            // Update list lokal agar UI langsung berubah
-                            userList = userList.map { if (it.uid == userToEditRole!!.uid) it.copy(role = newRole) else it }
-                            userToEditRole = null
-                        }
-                    )
-                }
-            )
-        }
-
-        // Dialog untuk Konfirmasi Hapus (ditampilkan jika userToDelete tidak null)
-        if (userToDelete != null) {
-            DeleteConfirmationDialog(
-                userName = userToDelete!!.displayName,
-                onConfirm = {
-                    deleteUser(
-                        context = context,
-                        user = userToDelete!!,
-                        onSuccess = {
-                            userList = userList.filterNot { it.uid == userToDelete!!.uid }
-                            userToDelete = null
-                        }
-                    )
-                },
-                onDismiss = { userToDelete = null }
-            )
-        }
     }
 }
+
 
 // --- Composable Helper untuk UI ---
 
@@ -223,10 +222,7 @@ private fun RoleChip(role: String) {
         else -> userRoleColor to "User"
     }
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(roleColor.copy(alpha = 0.15f))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(roleColor.copy(alpha = 0.15f)).padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(roleText, color = roleColor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
     }
@@ -245,32 +241,15 @@ private fun ChangeRoleDialog(user: UserProfile, onDismiss: () -> Unit, onRoleCha
         text = {
             Column {
                 roles.forEach { role ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = (role == selectedRole),
-                                onClick = { selectedRole = role },
-                                role = Role.RadioButton
-                            )
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (role == selectedRole),
-                            onClick = { selectedRole = role }
-                        )
+                    Row(Modifier.fillMaxWidth().selectable(selected = (role == selectedRole), onClick = { selectedRole = role }, role = Role.RadioButton).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = (role == selectedRole), onClick = { selectedRole = role })
                         Text(text = role.replaceFirstChar { it.uppercase() }, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
         },
-        confirmButton = {
-            Button(onClick = { onRoleChange(selectedRole) }) { Text("Simpan") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Batal") }
-        }
+        confirmButton = { Button(onClick = { onRoleChange(selectedRole) }) { Text("Simpan") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } }
     )
 }
 
@@ -289,34 +268,75 @@ private fun DeleteConfirmationDialog(userName: String, onConfirm: () -> Unit, on
 
 // --- Logika Backend (Fungsi Helper) ---
 
-private fun updateUserRole(context: Context, uid: String, newRole: String, onSuccess: () -> Unit) {
-    FirebaseFirestore.getInstance().collection("users").document(uid)
-        .update("role", newRole)
+private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, newRole: String, onSuccess: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    val userDocRef = db.collection("users").document(user.uid)
+    val oldRole = user.role
+
+    if (oldRole == newRole) {
+        Toast.makeText(context, "Peran sudah sama, tidak ada perubahan.", Toast.LENGTH_SHORT).show()
+        onSuccess()
+        return
+    }
+
+    userDocRef.update("role", newRole)
         .addOnSuccessListener {
+            Log.d("RoleChange", "Peran untuk ${user.displayName} berhasil diubah menjadi $newRole.")
             Toast.makeText(context, "Peran pengguna berhasil diubah", Toast.LENGTH_SHORT).show()
-            onSuccess()
+
+            when {
+                oldRole != "mentor" && newRole == "mentor" -> {
+                    val newMentorProfile = Mentor(
+                        userId = user.uid,
+                        name = user.displayName,
+                        deskripsi = "Silakan lengkapi deskripsi Anda.",
+                        peminatan = "Belum ditentukan",
+                        bersediaKah = true,
+                        achievements = emptyList()
+                    )
+                    db.collection("Mentor").add(newMentorProfile)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Toast.makeText(context, "Profil Mentor baru telah dibuat.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Gagal membuat profil mentor: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                            }
+                            onSuccess() // Tetap panggil onSuccess agar dialog ditutup
+                        }
+                }
+                oldRole == "mentor" && newRole != "mentor" -> {
+                    db.collection("Mentor").whereEqualTo("userId", user.uid).get()
+                        .addOnSuccessListener { querySnapshot ->
+                            querySnapshot.documents.forEach { it.reference.delete() }
+                            Toast.makeText(context, "Profil Mentor telah dihapus.", Toast.LENGTH_SHORT).show()
+                            onSuccess()
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Gagal menghapus profil mentor: ${e.message}", Toast.LENGTH_LONG).show()
+                            onSuccess() // Tetap panggil onSuccess agar dialog ditutup
+                        }
+                }
+                else -> {
+                    onSuccess()
+                }
+            }
         }
-        .addOnFailureListener {
-            Toast.makeText(context, "Gagal mengubah peran: ${it.message}", Toast.LENGTH_LONG).show()
+        .addOnFailureListener { e ->
+            Toast.makeText(context, "Gagal mengubah peran: ${e.message}", Toast.LENGTH_LONG).show()
         }
 }
 
+
 private fun deleteUser(context: Context, user: UserProfile, onSuccess: () -> Unit) {
-    // PENTING: Menghapus dokumen di Firestore TIDAK menghapus akun login di Authentication.
-    // Ini harus dilakukan manual di Firebase Console atau menggunakan Cloud Function untuk keamanan.
     Log.d("UserDelete", "Menghapus profil Firestore untuk user: ${user.uid}")
     Log.w("UserDelete", "INGAT: Hapus juga akun login untuk ${user.email} dari Firebase Authentication secara manual.")
 
     FirebaseFirestore.getInstance().collection("users").document(user.uid).delete()
         .addOnSuccessListener {
-            // Jika user ini juga seorang mentor, hapus juga profilnya di koleksi 'Mentor'
             if (user.role == "mentor") {
                 FirebaseFirestore.getInstance().collection("Mentor").whereEqualTo("userId", user.uid).get()
                     .addOnSuccessListener { mentorQuery ->
-                        mentorQuery.documents.forEach { doc ->
-                            Log.d("UserDelete", "Menghapus profil mentor terkait: ${doc.id}")
-                            doc.reference.delete()
-                        }
+                        mentorQuery.documents.forEach { doc -> doc.reference.delete() }
                     }
             }
             Toast.makeText(context, "Profil pengguna berhasil dihapus", Toast.LENGTH_SHORT).show()

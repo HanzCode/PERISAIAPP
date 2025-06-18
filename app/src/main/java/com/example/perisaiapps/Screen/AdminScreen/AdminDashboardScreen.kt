@@ -45,6 +45,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.perisaiapps.ViewModel.AdminDashboardViewModel
@@ -81,6 +85,23 @@ fun AdminDashboardScreen(
         AdminActionItem("Kelola Lomba", Icons.Default.Create, "admin_manage_lomba_route"),
         AdminActionItem("Kelola Pengguna", Icons.Default.Person, "admin_manage_users_route"), // Contoh
     )
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            // Jika lifecycle event adalah ON_RESUME (layar kembali aktif)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Panggil fungsi untuk memuat ulang data statistik
+                viewModel.fetchDashboardStats()
+            }
+        }
+        // Tambahkan observer ke lifecycle
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // Hapus observer saat Composable meninggalkan layar
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -123,13 +144,13 @@ fun AdminDashboardScreen(
             ) {
                 DashboardSummaryCard(
                     label = "Total Mentor",
-                    count = if (isLoading) "..." else mentorCount.toString(),
+                    count = if (isLoading && mentorCount == 0L) "..." else mentorCount.toString(), // Tampilkan "..." hanya saat loading awal
                     icon = Icons.Default.People,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardSummaryCard(
                     label = "Total Lomba",
-                    count = if (isLoading) "..." else lombaCount.toString(),
+                    count = if (isLoading && lombaCount == 0L) "..." else lombaCount.toString(), // Tampilkan "..." hanya saat loading awal
                     icon = Icons.Default.Info,
                     modifier = Modifier.weight(1f)
                 )

@@ -1,5 +1,6 @@
 package com.example.perisaiapps.Screen.admin
 
+import android.R.attr.singleLine
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -40,8 +41,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
@@ -188,13 +192,22 @@ fun AddEditMentorScreen(
             // --- Bagian Prestasi (Achievements) ---
             Divider(color = accentColor.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
             SectionTitle("Prestasi Mentor")
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = currentAchievementText,
                 onValueChange = { currentAchievementText = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Ketik prestasi lalu klik tambah") },
+                label =  "Ketik prestasi lalu klik tambah",
                 singleLine = true,
-//                colors = OutlinedTextFieldDefaults.colors(containerColor = cardBackground),
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (currentAchievementText.isNotBlank()) {
+                            achievementsList = achievementsList + currentAchievementText.trim()
+                            currentAchievementText = ""
+                            keyboardController?.hide()
+                        }
+                    }
+                ),
                 trailingIcon = {
                     IconButton(
                         onClick = {
@@ -207,17 +220,7 @@ fun AddEditMentorScreen(
                     ) {
                         Icon(Icons.Default.AddCircle, contentDescription = "Tambah Prestasi", tint = accentColor)
                     }
-                },
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (currentAchievementText.isNotBlank()) {
-                            achievementsList = achievementsList + currentAchievementText.trim()
-                            currentAchievementText = ""
-                            keyboardController?.hide()
-                        }
-                    }
-                )
+                }
             )
             if (achievementsList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -230,7 +233,11 @@ fun AddEditMentorScreen(
                         InputChip(
                             selected = false,
                             onClick = { /* Bisa untuk edit chip nanti */ },
-                            label = { Text(achievement) },
+                            label = { Text(
+                                text = achievement, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                 color = textColorPrimary)
+                                    },
                             trailingIcon = {
                                 Icon(
                                     Icons.Default.Close,
@@ -348,7 +355,9 @@ private fun CustomOutlinedTextField(
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
     onPasswordVisibilityChange: () -> Unit = {},
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default, // Tambahkan ini
+    trailingIcon: @Composable (() -> Unit)? = null // Tambahkan ini
 ) {
     OutlinedTextField(
         value = value,
@@ -358,12 +367,15 @@ private fun CustomOutlinedTextField(
         singleLine = singleLine,
         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = keyboardOptions,
-        trailingIcon = {
+        keyboardActions = keyboardActions, // Gunakan di sini
+        trailingIcon = { // Gunakan di sini
             if (isPassword) {
                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                 IconButton(onClick = onPasswordVisibilityChange) {
                     Icon(imageVector = image, contentDescription = "Toggle Password Visibility")
                 }
+            } else {
+                trailingIcon?.invoke() // Tampilkan trailing icon kustom jika ada
             }
         },
         colors = OutlinedTextFieldDefaults.colors(
@@ -513,16 +525,7 @@ private fun updateExistingMentor(
             "photoUrl" to (finalPhotoUrl ?: ""),
             "achievements" to achievements
         )
-//        FirebaseFirestore.getInstance().collection("Mentor").document(mentorId)
-//            .update(mentorDataMap)
-//            .addOnSuccessListener {
-//                Log.d("UpdateMentor", "Profil Mentor berhasil diupdate.")
-//                onSuccess()
-//            }
-//            .addOnFailureListener {
-//                Log.w("UpdateMentor", "Gagal update profil Mentor.", it)
-//                onFailure(it)
-//            }
+
         FirebaseFirestore.getInstance().collection("Mentor").document(mentorId)
             // Ganti .update(map) dengan .set(map, merge)
             // Meskipun terlihat sama, ini menunjukkan pola yang bisa dipakai untuk objek
@@ -595,5 +598,126 @@ private fun getFinalPhotoUrl(
             }).dispatch(context)
     } else {
         onResult(existingUrl, null)
+    }
+}
+
+@Preview(
+    name = "Layar Tambah Mentor (Utama)",
+    showBackground = true,
+    backgroundColor = 0xFF120E26 // Warna background gelap sesuai tema
+)
+@Composable
+private fun AddMentorScreenPreview() {
+    // Gunakan NavController palsu untuk preview
+    val navController = rememberNavController()
+    AddEditMentorScreen(
+        navController = navController,
+        mentorId = null // Mode tambah baru
+    )
+}
+
+/**
+ * Preview khusus untuk komponen pemilih gambar profil dalam berbagai state.
+ */
+@Preview(name = "Pemilih Gambar - Kosong", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun ProfileImagePickerPreview_Empty() {
+    Box(modifier = Modifier.padding(16.dp)) {
+        ProfileImagePicker(
+            selectedImageUri = null,
+            existingPhotoUrl = null,
+            onClick = {}
+        )
+    }
+}
+
+@Preview(name = "Pemilih Gambar - Ada Gambar", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun ProfileImagePickerPreview_WithImage() {
+    Box(modifier = Modifier.padding(16.dp)) {
+        ProfileImagePicker(
+            selectedImageUri = null,
+            // Gunakan URL placeholder untuk preview
+            existingPhotoUrl = "https://picsum.photos/id/237/200/200",
+            onClick = {}
+        )
+    }
+}
+
+
+/**
+ * Preview khusus untuk komponen Switch ketersediaan.
+ */
+@Preview(name = "Switch Ketersediaan - Bersedia", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun AvailabilitySwitchPreview_Available() {
+    Box(modifier = Modifier.padding(16.dp)) {
+        AvailabilitySwitch(
+            bersediaKah = true,
+            onCheckedChange = {}
+        )
+    }
+}
+
+@Preview(name = "Switch Ketersediaan - Sibuk", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun AvailabilitySwitchPreview_Busy() {
+    Box(modifier = Modifier.padding(16.dp)) {
+        AvailabilitySwitch(
+            bersediaKah = false,
+            onCheckedChange = {}
+        )
+    }
+}
+
+/**
+ * Preview khusus untuk TextField kustom.
+ */
+@Preview(name = "TextField - Password", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun CustomOutlinedTextFieldPasswordPreview() {
+    var password by remember { mutableStateOf("123456") }
+    var isVisible by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.padding(16.dp)) {
+        CustomOutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = "Password",
+            isPassword = true,
+            passwordVisible = isVisible,
+            onPasswordVisibilityChange = { isVisible = !isVisible }
+        )
+    }
+}
+
+/**
+ * Preview untuk bagian daftar prestasi (achievements)
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Preview(name = "Daftar Prestasi (Chips)", showBackground = true, backgroundColor = 0xFF120E26)
+@Composable
+private fun AchievementsListPreview() {
+    val achievements = listOf("Juara 1 Lomba Coding Nasional", "Speaker di Tech Conference", "Contributor Open Source")
+    Box(modifier = Modifier.padding(16.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            achievements.forEach { achievement ->
+                InputChip(
+                    selected = false,
+                    onClick = { },
+                    label = { Text(achievement) },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Hapus Prestasi",
+                            modifier = Modifier.size(InputChipDefaults.IconSize)
+                        )
+                    }
+                )
+            }
+        }
     }
 }
