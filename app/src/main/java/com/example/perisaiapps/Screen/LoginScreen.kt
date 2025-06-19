@@ -67,7 +67,7 @@ fun LoginScreen(
         if (userRole != UserRole.UNKNOWN) {
             val destination = when (userRole) {
                 UserRole.ADMIN -> "admin_dashboard_route"
-                UserRole.MENTOR -> "mentor_dashboard_route"
+                UserRole.MENTOR -> "mentor_main_route"
                 UserRole.USER -> "home"
                 else -> null
             }

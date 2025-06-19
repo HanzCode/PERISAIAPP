@@ -1,6 +1,5 @@
 package com.example.perisaiapps.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,6 +8,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -21,16 +21,28 @@ private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
     tertiary = Pink40
+)
+private val darkPurpleBlue = Color(0xFF120E26)
+private val cardBackgroundColor = Color(0xFF1F1A38)
+private val lightGrayPlaceholder = Color(0xFF4A4A5A)
+private val buttonBackgroundColor = Color(0xFFD0D0D0)
+private val buttonTextColor = Color(0xFF120E26)
+private val textColorPrimary = Color.White
+private val textColorSecondary = Color.White.copy(alpha = 0.7f)
+private val textColorAccent = Color(0xFFFDD835) // Kuning
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+// Definisikan Skema Warna Gelap untuk Material 3
+private val AppDarkColorScheme = darkColorScheme(
+    primary = textColorAccent, // Aksen kuning sebagai primary
+    background = darkPurpleBlue,
+    surface = darkPurpleBlue,
+    onSurface = textColorPrimary,
+    surfaceVariant = cardBackgroundColor, // Warna kartu
+    onSurfaceVariant = textColorSecondary,
+    secondaryContainer = buttonBackgroundColor, // Warna tombol
+    onSecondaryContainer = buttonTextColor, // Warna teks tombol
+    onPrimary = darkPurpleBlue, // Teks di atas warna primary (kuning)
+    tertiary = lightGrayPlaceholder // Bisa untuk divider atau placeholder
 )
 
 @Composable
@@ -53,6 +65,16 @@ fun PerisaiAppsTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        content = content
+    )
+}
+@Composable
+fun PerisaiAppsDarkTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = AppDarkColorScheme,
+        typography = Typography, // Gunakan Typography yang sudah ada
         content = content
     )
 }
