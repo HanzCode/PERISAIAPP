@@ -5,7 +5,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -76,7 +74,7 @@ fun AddEditLombaScreen(navController: NavController, lombaId: String? = null) {
                         deskripsi = lomba.deskripsi
                         pendaftaran = lomba.pendaftaran
                         pelaksanaan = lomba.pelaksanaan
-                        linkInfo = lomba.LinkInfo
+                        linkInfo = lomba.linkInfo
                         existingImageUrl = lomba.imageUrl.ifBlank { null }
                     }
                     isLoading = false
@@ -224,7 +222,7 @@ private fun proceedToSaveLomba(
         "deskripsi" to deskripsi,
         "pendaftaran" to pendaftaran,
         "pelaksanaan" to pelaksanaan,
-        "LinkInfo" to linkInfo,
+        "linkInfo" to linkInfo,
         "imageUrl" to (finalImageUrl ?: "")
     )
 

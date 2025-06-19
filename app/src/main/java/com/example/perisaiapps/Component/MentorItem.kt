@@ -31,7 +31,6 @@ import coil.compose.AsyncImage
 @Composable
 fun MentorItem(
     mentor: Mentor,
-    // <-- 2. TAMBAHKAN PARAMETER onItemClick -->
     onItemClick: (String) -> Unit
 ) {
     val isReady = mentor.bersediaKah

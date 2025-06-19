@@ -17,7 +17,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.Navigation.AppNavigation
 import com.example.perisaiapps.Screen.HomeScreen
 import com.example.perisaiapps.Screen.LoginScreen
-import com.example.perisaiapps.ViewModel.LoginViewModel
 import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 
 class MainActivity : ComponentActivity() {

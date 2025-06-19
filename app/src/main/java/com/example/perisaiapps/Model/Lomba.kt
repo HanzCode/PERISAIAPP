@@ -1,8 +1,11 @@
 package com.example.perisaiapps.Model
 
+import com.google.firebase.firestore.DocumentId
+
 data class Lomba(
+    @DocumentId
     val id: String = "", // Untuk menyimpan ID dokumen dari Firestore
-    val LinkInfo: String = "", // Link ke halaman detail lomba
+    val linkInfo: String = "", // Link ke halaman detail lomba
     val deskripsi: String = "",
     val imageUrl : String = "", // URL gambar poster/banner lomba
     val namaLomba: String = "",
