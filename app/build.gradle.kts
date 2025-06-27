@@ -1,8 +1,10 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-//    id("com.android.application")
     id("com.google.gms.google-services")
 }
 
@@ -18,6 +20,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Kode di bawah ini sekarang akan berjalan tanpa error karena sudah di-import
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(FileInputStream(localPropertiesFile))
+        }
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME", localProperties.getProperty("cloudinary_cloud_name"))
+        buildConfigField("String", "CLOUDINARY_API_KEY", localProperties.getProperty("cloudinary_api_key"))
+        buildConfigField("String", "CLOUDINARY_API_SECRET", localProperties.getProperty("cloudinary_api_secret"))
+
     }
 
     buildTypes {
@@ -39,6 +52,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -64,22 +78,21 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended-android:1.7.8")
-    // Untuk mengubah fungsi Firebase menjadi suspend function (lebih modern)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-    // Untuk lifecycleScope
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
-    //Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx") // Login
-    //Coil
+    implementation("com.google.firebase:firebase-auth-ktx")
     implementation("io.coil-kt:coil-compose:2.6.0")
-    //Claudinary
-    implementation("com.cloudinary:cloudinary-android:3.0.2")
+
+    // Cloudinary. Pastikan versi ini sesuai atau gunakan alias dari libs jika ada
+    implementation("com.cloudinary:cloudinary-android:2.4.0") // Ubah versi jika perlu
+
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment:2.7.7")
     implementation("androidx.navigation:navigation-ui:2.7.7")
+
 }

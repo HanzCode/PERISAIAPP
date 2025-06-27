@@ -83,7 +83,6 @@ class ProfileViewModel : ViewModel() {
                 override fun onReschedule(requestId: String?, error: ErrorInfo?) {
                     Log.w("CloudinaryUpload", "Upload dijadwalkan ulang: ${error?.description}")
                 }
-                // --------------------------------------------------
 
                 override fun onSuccess(requestId: String, resultData: Map<*, *>) {
                     val newPhotoUrl = resultData["secure_url"] as? String

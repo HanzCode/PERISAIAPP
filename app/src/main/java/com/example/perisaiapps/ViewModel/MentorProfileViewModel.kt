@@ -62,7 +62,9 @@ class MentorProfileViewModel : ViewModel() {
         }
     }
 
-
+    fun refreshProfile() {
+        fetchCurrentMentorProfile()
+    }
     fun logout() {
         auth.signOut()
     }

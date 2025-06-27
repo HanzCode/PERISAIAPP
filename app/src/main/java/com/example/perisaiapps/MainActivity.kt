@@ -22,14 +22,10 @@ import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
         setContent {
-            val navController = rememberNavController()
             AppNavigation()
-//            val loginViewModel = LoginViewModel()
-//            PerisaiAppsTheme {
-//                LoginScreen(navController, loginViewModel)
-//            }
+
         }
     }
 }

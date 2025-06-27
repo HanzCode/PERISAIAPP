@@ -34,7 +34,7 @@ fun MainScreen(mainNavController: NavController) {
                 InfoLombaScreen(navController = mainNavController)
             }
             composable("mentor") {
-                MentorListScreen(navController = mainNavController) //
+                MentorListScreen(navController = mainNavController)
             }
             composable("profile") {
                 ProfileScreen(navController = mainNavController)

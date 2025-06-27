@@ -1,8 +1,13 @@
 package com.example.perisaiapps.ui.screen.mentor
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -10,11 +15,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
 import com.example.perisaiapps.viewmodel.EditMentorProfileViewModel
 
@@ -31,6 +39,12 @@ fun EditMentorProfileScreen(
     // 2. Ambil semua state yang dibutuhkan dari ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val updateSuccess by viewModel.updateSuccess.collectAsState()
+    val mentor by viewModel.mentor.collectAsState()
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.onImageSelected(it) }
+    }
 
     // 3. Panggil loadMentorProfile sekali saat layar dibuka
     LaunchedEffect(key1 = mentorId) {
@@ -76,7 +90,7 @@ fun EditMentorProfileScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         // Jika ViewModel sedang mengambil data awal, tampilkan loading
-        if (viewModel.mentor.collectAsState().value == null && isLoading) {
+        if (mentor == null && isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -87,9 +101,38 @@ fun EditMentorProfileScreen(
                     .padding(paddingValues)
                     .fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 5. Hubungkan setiap TextField/Switch ke state di ViewModel
+                val displayImage: Any? = viewModel.newImageUri.value ?: mentor?.photoUrl
+                item {
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        AsyncImage(
+                            model = displayImage?.toString()
+                                ?.ifBlank { "https://example.com/placeholder.jpg" },
+                            contentDescription = "Foto Profil",
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.tertiary),
+                            contentScale = ContentScale.Crop
+                        )
+                        IconButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Ubah Foto",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
                 item {
                     FormTextField(
                         value = viewModel.name.value,

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -21,6 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.Mentor
@@ -32,11 +37,25 @@ import com.example.perisaiapps.viewmodel.MentorProfileViewModel
 fun MentorProfileScreen(
     // Navigasi ke halaman edit tetap dikelola oleh NavHost
     onNavigateToEdit: (String) -> Unit,
-    viewModel: MentorProfileViewModel = viewModel()
+    viewModel: MentorProfileViewModel = viewModel(),
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     // 1. Ambil state dari ViewModel
     val mentorProfile by viewModel.mentorProfile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            // Jika layar kembali aktif (misal setelah kembali dari halaman edit)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshProfile()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
 
     Scaffold(
         topBar = {

@@ -63,7 +63,6 @@ fun AdminManageLombaScreen(navController: NavController) {
     }
 
     val deleteLombaAction: (String) -> Unit = { lombaId ->
-        // TODO: Hapus juga gambar dari Cloudinary jika diperlukan (memerlukan backend/Cloud Function)
         FirebaseFirestore.getInstance().collection("Lomba").document(lombaId).delete()
             .addOnSuccessListener {
                 Toast.makeText(context, "Lomba berhasil dihapus", Toast.LENGTH_SHORT).show()
