@@ -37,7 +37,8 @@ import com.example.perisaiapps.Screen.MentorListScreen
 import com.example.perisaiapps.Screen.SplashScreen
 import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
 import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
-import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
+import com.example.perisaiapps.ui.screen.mentor.NotesScreen
+import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.google.firebase.auth.FirebaseAuth
 
 @SuppressLint("ComposableDestinationInComposeScope")
@@ -91,12 +92,25 @@ fun AppNavigation() {
             arguments = listOf(navArgument("chatId") { type = NavType.StringType })
         ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            PerisaiAppsDarkTheme {
+            PerisaiAppsTheme {
                 DetailChatScreen(
                     chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNotes = {
+                        navController.navigate("notes/$chatId")
+                    }
                 )
             }
+        }
+        composable(
+            route = "notes/{chatId}",
+            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            NotesScreen(
+                chatId = chatId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(
             route = "detail_lomba/{lombaId}", // Definisikan rute dengan argumen {lombaId}
@@ -170,7 +184,7 @@ fun AppNavigation() {
         // rute Mentor
         composable("mentor_main_route") {
             // Kita bungkus dengan tema gelap agar semua layar di dalamnya menggunakan palet baru
-            PerisaiAppsDarkTheme {
+            PerisaiAppsTheme {
                 MentorMainNavigation()
             }
 

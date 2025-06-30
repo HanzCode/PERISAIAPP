@@ -23,7 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
+import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.example.perisaiapps.viewmodel.EditMentorProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -245,7 +245,7 @@ private fun FormTextField(
 @Preview
 @Composable
 private fun EditMentorProfileScreenPreview() {
-    PerisaiAppsDarkTheme {
+    PerisaiAppsTheme {
         EditMentorProfileScreen(mentorId = "123", onNavigateBack = {})
     }
 }

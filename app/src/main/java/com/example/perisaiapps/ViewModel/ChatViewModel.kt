@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.perisaiapps.Model.ChatMessage
+import com.example.perisaiapps.Model.SharedNote
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -12,18 +13,53 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.WriteBatch
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlin.coroutines.resume
 
 class ChatViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
+    private val _notes = MutableStateFlow<List<SharedNote>>(emptyList())
+    val notes = _notes.asStateFlow()
 
     val messageText = mutableStateOf("")
 
+    fun getNotes(chatRoomId: String) {
+        if (chatRoomId.isBlank()) return
+        val notesCollection = db.collection("chats").document(chatRoomId).collection("notes")
+            .orderBy("lastEdited", Query.Direction.DESCENDING)
+
+        notesCollection.addSnapshotListener { snapshot, error ->
+            if (snapshot != null) {
+                _notes.value = snapshot.toObjects(SharedNote::class.java)
+            }
+        }
+    }
+
+    // Fungsi untuk menambah atau mengedit catatan
+    fun upsertNote(chatRoomId: String, noteText: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        if (noteText.isBlank()) return // Jangan simpan catatan kosong
+
+        viewModelScope.launch {
+            val noteRef = db.collection("chats").document(chatRoomId).collection("notes")
+
+            // Kita gunakan ID "shared_note" agar selalu mengedit dokumen yang sama.
+            val sharedNoteDocRef = noteRef.document("shared_note")
+
+            val noteData = mapOf(
+                "text" to noteText,
+                "editorId" to currentUserId,
+                "lastEdited" to Timestamp.now()
+            )
+            // .set dengan merge=true akan membuat dokumen jika belum ada, atau update jika sudah ada
+            sharedNoteDocRef.set(noteData, SetOptions.merge()).await()
+        }
+    }
     fun getMessages(chatRoomId: String) = callbackFlow {
         if (chatRoomId.isBlank()) { close(); return@callbackFlow }
         val messagesCollection = db.collection("chats").document(chatRoomId).collection("messages")

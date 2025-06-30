@@ -11,15 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val AppLightColorScheme = lightColorScheme(
-    primary = Color(0xFF6200EE), // Warna ungu sebagai primary di mode terang
-    background = Color(0xFFF5F5F5), // Background abu-abu sangat muda
-    surface = Color.White,
-    onSurface = Color.Black,
-    surfaceVariant = Color(0xFFE0E0E0), // Warna kartu di mode terang
-    onSurfaceVariant = Color.Black.copy(alpha = 0.6f)
-    // ... definisikan warna lain agar cocok
-)
+// Palet Warna Kustom Anda
 private val darkPurpleBlue = Color(0xFF120E26)
 private val cardBackgroundColor = Color(0xFF1F1A38)
 private val lightGrayPlaceholder = Color(0xFF4A4A5A)
@@ -29,24 +21,32 @@ private val textColorPrimary = Color.White
 private val textColorSecondary = Color.White.copy(alpha = 0.7f)
 private val textColorAccent = Color(0xFFFDD835) // Kuning
 
-// Definisikan Skema Warna Gelap untuk Material 3
+// Skema Warna Gelap Kustom
 private val AppDarkColorScheme = darkColorScheme(
-    primary = textColorAccent, // Aksen kuning sebagai primary
+    primary = textColorAccent,
     background = darkPurpleBlue,
     surface = darkPurpleBlue,
     onSurface = textColorPrimary,
-    surfaceVariant = cardBackgroundColor, // Warna kartu
+    surfaceVariant = cardBackgroundColor,
     onSurfaceVariant = textColorSecondary,
-    secondaryContainer = buttonBackgroundColor, // Warna tombol
-    onSecondaryContainer = buttonTextColor, // Warna teks tombol
-    onPrimary = darkPurpleBlue, // Teks di atas warna primary (kuning)
-    tertiary = lightGrayPlaceholder // Bisa untuk divider atau placeholder
+    secondaryContainer = buttonBackgroundColor,
+    onSecondaryContainer = buttonTextColor,
+    onPrimary = darkPurpleBlue,
+    tertiary = lightGrayPlaceholder
+)
+
+// Skema Warna Terang Default (bisa diabaikan untuk saat ini)
+private val LightColorScheme = lightColorScheme(
+    primary = Purple40,
+    secondary = PurpleGrey40,
+    tertiary = Pink40
 )
 
 @Composable
 fun PerisaiAppsTheme(
-    darkTheme: Boolean = true,
-    dynamicColor: Boolean = true,
+    // PERUBAHAN UTAMA DI SINI:
+    darkTheme: Boolean = true, // Selalu gunakan tema gelap
+    dynamicColor: Boolean = false, // Matikan dynamic color agar tema kita tidak ditimpa
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -54,23 +54,14 @@ fun PerisaiAppsTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> AppDarkColorScheme // Gunakan skema warna kustom kita
-        else -> AppLightColorScheme      // Gunakan skema warna terang
+
+        darkTheme -> AppDarkColorScheme // <-- Sekarang akan selalu memilih ini
+        else -> LightColorScheme
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
-    )
-}
-@Composable
-fun PerisaiAppsDarkTheme(
-    content: @Composable () -> Unit
-) {
-    MaterialTheme(
-        colorScheme = AppDarkColorScheme,
-        typography = Typography, // Gunakan Typography yang sudah ada
         content = content
     )
 }

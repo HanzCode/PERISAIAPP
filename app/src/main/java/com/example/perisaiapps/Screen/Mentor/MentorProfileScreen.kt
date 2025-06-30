@@ -29,7 +29,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.Mentor
-import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
+import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.example.perisaiapps.viewmodel.MentorProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -243,7 +243,7 @@ fun ProfileAchievementsCard(achievements: List<String>) {
 @Preview(showBackground = true)
 @Composable
 fun MentorProfileScreenPreview() {
-    PerisaiAppsDarkTheme {
+    PerisaiAppsTheme {
         // Preview kini hanya butuh onNavigateToEdit
         MentorProfileScreen(onNavigateToEdit = {})
     }

@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.perisaiapps.Model.ChatMessage
-import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
+import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.example.perisaiapps.viewmodel.ChatViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
 fun DetailChatScreen(
     chatId: String,
     onNavigateBack: () -> Unit,
+    onNavigateToNotes: () -> Unit,
     viewModel: ChatViewModel = viewModel()
 ) {
     // Ambil pesan secara real-time
@@ -58,6 +61,11 @@ fun DetailChatScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
+                actions = {
+                    IconButton(onClick = onNavigateToNotes) {
+                        Icon(Icons.Default.Note, contentDescription = "Lihat Catatan")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -84,8 +92,7 @@ fun DetailChatScreen(
             reverseLayout = true // Pesan baru muncul dari bawah
         ) {
             items(messages, key = { message ->
-                // Jika ID sudah ada, gunakan ID. Jika belum (misal saat baru dikirim),
-                // gunakan timestamp + text sebagai kunci sementara yang sangat unik.
+
                 if (message.id.isNotBlank()) message.id else "${message.timestamp}-${message.text}"
             }) { message ->
                 // ===============================================================
@@ -160,11 +167,3 @@ fun MessageInput(
     }
 }
 
-@Preview
-@Composable
-private fun DetailChatScreenPreview() {
-    PerisaiAppsDarkTheme {
-        // Preview tidak akan menampilkan data real-time, hanya layout
-        DetailChatScreen(chatId = "preview_chat", onNavigateBack = {})
-    }
-}

@@ -97,7 +97,6 @@ fun UserChatRow(chatItem: UserChatListItem, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                // PERBAIKAN STYLE PADA TEXT INI
                 Text(
                     text = chatItem.lastMessage.ifBlank { "Belum ada pesan" },
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -108,7 +107,6 @@ fun UserChatRow(chatItem: UserChatListItem, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            // TAMBAHKAN BADGE DI SINI
             if (chatItem.unreadCount > 0) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Badge(
