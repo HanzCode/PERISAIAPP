@@ -44,6 +44,10 @@ fun DetailChatScreen(
             }
         }
     }
+    // Akan berjalan sekali saat layar dibuka
+    LaunchedEffect(key1 = chatId) {
+        viewModel.markMessagesAsRead(chatId)
+    }
 
     Scaffold(
         topBar = {

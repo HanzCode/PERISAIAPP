@@ -26,60 +26,70 @@ class UserChatListViewModel : ViewModel() {
     val isLoading = _isLoading.asStateFlow()
 
     init {
-        fetchUserChats()
+        listenForUserChats()
     }
 
-    private fun fetchUserChats() {
+    private fun listenForUserChats() {
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
             _isLoading.value = false
             return
         }
 
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val chatRoomsSnapshot = db.collection("chats")
-                    .whereArrayContains("participants", currentUserId)
-                    .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
-                    .get().await()
+        _isLoading.value = true
 
-                val chatListItems = mutableListOf<UserChatListItem>()
+        val query = db.collection("chats")
+            .whereArrayContains("participants", currentUserId)
+            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
 
-                for (doc in chatRoomsSnapshot.documents) {
-                    val participants = doc.get("participants") as? List<*>
-                    val mentorId = participants?.find { it != currentUserId } as? String
+        query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e("UserChatListVM", "Error mendengarkan chat", error)
+                _isLoading.value = false
+                return@addSnapshotListener
+            }
 
-                    if (mentorId != null) {
-                        val mentorQuery = db.collection("Mentor")
-                            .whereEqualTo("userId", mentorId)
-                            .limit(1)
-                            .get()
-                            .await()
+            if (snapshot != null) {
+                viewModelScope.launch {
+                    val chatListItems = mutableListOf<UserChatListItem>()
+                    for (doc in snapshot.documents) {
+                        val participants = doc.get("participants") as? List<*>
+                        val mentorId = participants?.find { it != currentUserId } as? String
 
-                        // Cek apakah hasil kueri tidak kosong
-                        if (!mentorQuery.isEmpty) {
-                            val mentorDoc = mentorQuery.documents[0] // Ambil dokumen pertama
-                            val mentorProfile = mentorDoc.toObject(Mentor::class.java)
+                        if (mentorId != null) {
+                            val mentorQuery = db.collection("Mentor")
+                                .whereEqualTo("userId", mentorId)
+                                .limit(1)
+                                .get()
+                                .await()
 
-                            chatListItems.add(
-                                UserChatListItem(
-                                    chatRoomId = doc.id,
-                                    mentorId = mentorId,
-                                    mentorName = mentorProfile?.name ?: "Mentor Tanpa Nama",
-                                    mentorPhotoUrl = mentorProfile?.photoUrl ?: "",
-                                    lastMessage = doc.getString("lastMessageText") ?: "",
-                                    lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now()
+                            if (!mentorQuery.isEmpty) {
+                                val mentorProfile = mentorQuery.documents[0].toObject(Mentor::class.java)
+
+                                // LOGIKA UNTUK MENGHITUNG PESAN BELUM DIBACA
+                                val unreadCountQuery = db.collection("chats").document(doc.id).collection("messages")
+                                    .whereEqualTo("senderId", mentorId) // Pesan dari MENTOR
+                                    .whereEqualTo("isRead", false)      // Yang belum dibaca
+                                    .get().await()
+                                val unreadCount = unreadCountQuery.size()
+
+                                chatListItems.add(
+                                    UserChatListItem(
+                                        chatRoomId = doc.id,
+                                        mentorId = mentorId,
+                                        mentorName = mentorProfile?.name ?: "Mentor",
+                                        mentorPhotoUrl = mentorProfile?.photoUrl ?: "",
+                                        lastMessage = doc.getString("lastMessageText") ?: "",
+                                        lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now(),
+                                        unreadCount = unreadCount // Masukkan hasil hitungan
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
+                    _chatList.value = chatListItems
+                    _isLoading.value = false
                 }
-                _chatList.value = chatListItems
-            } catch (e: Exception) {
-                Log.e("UserChatListVM", "Gagal mengambil daftar chat", e)
-            } finally {
-                _isLoading.value = false
             }
         }
     }

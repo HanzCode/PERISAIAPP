@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -58,7 +59,6 @@ fun UserChatListScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(chatList, key = { it.chatRoomId }) { chatItem ->
-
                         UserChatRow(
                             chatItem = chatItem,
                             onClick = {
@@ -83,30 +83,44 @@ fun UserChatRow(chatItem: UserChatListItem, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                // Di sini kita ambil properti dari 'chatItem'
                 model = chatItem.mentorPhotoUrl,
                 contentDescription = "Foto ${chatItem.mentorName}",
                 modifier = Modifier.size(56.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    // Ambil properti dari 'chatItem'
                     text = chatItem.mentorName,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
+                // PERBAIKAN STYLE PADA TEXT INI
                 Text(
-                    // Ambil properti dari 'chatItem'
                     text = chatItem.lastMessage.ifBlank { "Belum ada pesan" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (chatItem.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                        color = if (chatItem.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            // TAMBAHKAN BADGE DI SINI
+            if (chatItem.unreadCount > 0) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(
+                        text = chatItem.unreadCount.toString(),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

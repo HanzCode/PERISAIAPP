@@ -8,5 +8,6 @@ data class ChatMessage(
     val id: String = "",
     val text: String = "",
     val senderId: String = "",
-    val timestamp: Timestamp = Timestamp.now()
+    val timestamp: Timestamp = Timestamp.now(),
+    val isRead: Boolean = false
 )

@@ -33,6 +33,9 @@ import com.example.perisaiapps.Model.Mentor
 import com.example.perisaiapps.Model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlin.collections.filter
+import kotlin.collections.filterNot
+import kotlin.collections.map
 
 // --- Palet Warna (konsisten dengan tema gelap) ---
 private val darkBackground = Color(0xFF120E26)
@@ -84,7 +87,7 @@ fun AdminManageUsersScreen(navController: NavController) {
                     newRole = newRole,
                     onSuccess = {
                         userList = userList.map {
-                            if (it.uid == userToEditRole!!.uid) it.copy(role = newRole) else it
+                            if (it.userId == userToEditRole!!.userId) it.copy(role = newRole) else it
                         }
                         userToEditRole = null
                     }
@@ -101,7 +104,7 @@ fun AdminManageUsersScreen(navController: NavController) {
                     context = context,
                     user = userToDelete!!,
                     onSuccess = {
-                        userList = userList.filterNot { it.uid == userToDelete!!.uid }
+                        userList = userList.filterNot { it.userId == userToDelete!!.userId }
                         userToDelete = null
                     }
                 )
@@ -175,7 +178,7 @@ fun AdminManageUsersScreen(navController: NavController) {
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
-                            items(filteredList, key = { it.uid }) { user ->
+                            items(filteredList, key = { it.userId }) { user ->
                                 AdminUserListItem(
                                     user = user,
                                     onEditRoleClick = { userToEditRole = user },
@@ -270,7 +273,7 @@ private fun DeleteConfirmationDialog(userName: String, onConfirm: () -> Unit, on
 
 private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, newRole: String, onSuccess: () -> Unit) {
     val db = FirebaseFirestore.getInstance()
-    val userDocRef = db.collection("users").document(user.uid)
+    val userDocRef = db.collection("users").document(user.userId)
     val oldRole = user.role
 
     if (oldRole == newRole) {
@@ -287,7 +290,7 @@ private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, 
             when {
                 oldRole != "mentor" && newRole == "mentor" -> {
                     val newMentorProfile = Mentor(
-                        userId = user.uid,
+                        userId = user.userId,
                         name = user.displayName,
                         deskripsi = "Silakan lengkapi deskripsi Anda.",
                         peminatan = "Belum ditentukan",
@@ -305,7 +308,7 @@ private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, 
                         }
                 }
                 oldRole == "mentor" && newRole != "mentor" -> {
-                    db.collection("Mentor").whereEqualTo("userId", user.uid).get()
+                    db.collection("Mentor").whereEqualTo("userId", user.userId).get()
                         .addOnSuccessListener { querySnapshot ->
                             querySnapshot.documents.forEach { it.reference.delete() }
                             Toast.makeText(context, "Profil Mentor telah dihapus.", Toast.LENGTH_SHORT).show()
@@ -328,13 +331,13 @@ private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, 
 
 
 private fun deleteUser(context: Context, user: UserProfile, onSuccess: () -> Unit) {
-    Log.d("UserDelete", "Menghapus profil Firestore untuk user: ${user.uid}")
+    Log.d("UserDelete", "Menghapus profil Firestore untuk user: ${user.userId}")
     Log.w("UserDelete", "INGAT: Hapus juga akun login untuk ${user.email} dari Firebase Authentication secara manual.")
 
-    FirebaseFirestore.getInstance().collection("users").document(user.uid).delete()
+    FirebaseFirestore.getInstance().collection("users").document(user.userId).delete()
         .addOnSuccessListener {
             if (user.role == "mentor") {
-                FirebaseFirestore.getInstance().collection("Mentor").whereEqualTo("userId", user.uid).get()
+                FirebaseFirestore.getInstance().collection("Mentor").whereEqualTo("userId", user.userId).get()
                     .addOnSuccessListener { mentorQuery ->
                         mentorQuery.documents.forEach { doc -> doc.reference.delete() }
                     }

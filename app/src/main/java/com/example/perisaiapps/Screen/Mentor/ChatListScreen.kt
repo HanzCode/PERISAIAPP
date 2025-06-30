@@ -101,11 +101,23 @@ fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
                 Text(
                     text = chatItem.lastMessage.ifBlank { "Belum ada pesan." },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (chatItem.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                    color = if (chatItem.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            if (chatItem.unreadCount > 0) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(
+                        text = chatItem.unreadCount.toString(),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
     }
-}
+    }

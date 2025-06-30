@@ -10,10 +10,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.WriteBatch
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.resume
 
 class ChatViewModel : ViewModel() {
 
@@ -23,61 +25,79 @@ class ChatViewModel : ViewModel() {
     val messageText = mutableStateOf("")
 
     fun getMessages(chatRoomId: String) = callbackFlow {
-        if (chatRoomId.isBlank()) {
-            close()
-            return@callbackFlow
-        }
+        if (chatRoomId.isBlank()) { close(); return@callbackFlow }
         val messagesCollection = db.collection("chats").document(chatRoomId).collection("messages")
             .orderBy("timestamp", Query.Direction.DESCENDING)
-
         val listener = messagesCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Log.e("ChatVM", "Gagal mendengarkan pesan", error)
-                close(error)
-                return@addSnapshotListener
+                close(error); return@addSnapshotListener
             }
             if (snapshot != null) {
-                // Anotasi @DocumentId di ChatMessage akan bekerja di sini
-                val messages = snapshot.toObjects(ChatMessage::class.java)
-                trySend(messages).isSuccess
+                trySend(snapshot.toObjects(ChatMessage::class.java)).isSuccess
             }
         }
         awaitClose { listener.remove() }
     }
 
+    // --- FUNGSI INI KITA PERBAIKI LOGIKANYA ---
+    fun markMessagesAsRead(chatRoomId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        // Dapatkan ID lawan bicara dari chatRoomId
+        val participants = chatRoomId.split("_")
+        val otherUserId = participants.firstOrNull { it != currentUserId }
+        if (otherUserId == null) {
+            Log.e("ChatVM", "Tidak bisa menandai pesan, otherUserId tidak ditemukan.")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val messagesRef = db.collection("chats").document(chatRoomId).collection("messages")
+
+                // Kueri yang lebih baik: cari pesan DARI lawan bicara, yang belum dibaca
+                val unreadMessagesQuery = messagesRef
+                    .whereEqualTo("senderId", otherUserId) // <-- LEBIH BAIK DARI whereNotEqualTo
+                    .whereEqualTo("isRead", false)
+                    .get().await()
+
+                val batch: WriteBatch = db.batch()
+                for (doc in unreadMessagesQuery.documents) {
+                    batch.update(doc.reference, "isRead", true)
+                }
+                batch.commit().await()
+                Log.d("ChatVM", "Menandai ${unreadMessagesQuery.size()} pesan sebagai sudah dibaca.")
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal menandai pesan sebagai sudah dibaca", e)
+            }
+        }
+    }
 
     fun sendMessage(chatRoomId: String) {
         val currentUserId = auth.currentUser?.uid
-        if (currentUserId == null || messageText.value.isBlank() || chatRoomId.isBlank()) {
-            return
-        }
+        if (currentUserId == null || messageText.value.isBlank() || chatRoomId.isBlank()) return
 
         val participants = chatRoomId.split("_")
         val otherUserId = participants.firstOrNull { it != currentUserId }
-
         if (otherUserId == null) {
-            Log.e("ChatVM", "Tidak bisa menemukan ID lawan bicara dari chatRoomId: $chatRoomId")
+            Log.e("ChatVM", "Gagal mengirim pesan, otherUserId tidak ditemukan.")
             return
         }
 
-        // =====================================================================
-        // BAGIAN PALING PENTING: KITA MEMBUAT MAP, BUKAN OBJEK CHATMESSAGE
-        // =====================================================================
         val messageData = mapOf(
             "text" to messageText.value,
             "senderId" to currentUserId,
-            "timestamp" to Timestamp.now()
-            // Perhatikan: TIDAK ADA field 'id' di sini. Ini kuncinya.
+            "timestamp" to Timestamp.now(),
+            "isRead" to false
         )
-        // =====================================================================
 
         val textToSend = messageText.value
-        messageText.value = "" // Reset field input di UI
+        messageText.value = ""
 
         viewModelScope.launch {
             val chatRoomRef = db.collection("chats").document(chatRoomId)
             try {
-                // Mengirim Map ke Firestore, bukan objek
                 chatRoomRef.collection("messages").add(messageData).await()
 
                 val updatedParticipants = listOf(currentUserId, otherUserId)
@@ -87,10 +107,9 @@ class ChatViewModel : ViewModel() {
                     "lastMessageText" to textToSend
                 )
                 chatRoomRef.set(chatRoomData, SetOptions.merge()).await()
-
             } catch (e: Exception) {
                 Log.e("ChatVM", "Gagal mengirim pesan", e)
-                messageText.value = textToSend // Kembalikan teks jika gagal
+                messageText.value = textToSend
             }
         }
     }

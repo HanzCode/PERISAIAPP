@@ -26,63 +26,71 @@ class MentorChatListViewModel : ViewModel() {
     val isLoading = _isLoading.asStateFlow()
 
     init {
-        fetchMentorChats()
+        // Logika init sekarang hanya memanggil fungsi listener
+        listenForMentorChats()
     }
 
-    fun fetchMentorChats() {
+    // FUNGSI INI KITA GANTI TOTAL UNTUK MENJADI REAL-TIME
+    private fun listenForMentorChats() {
         val currentMentorId = auth.currentUser?.uid
         if (currentMentorId == null) {
             _isLoading.value = false
             return
         }
+        _isLoading.value = true
 
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val chatRoomsSnapshot = db.collection("chats")
-                    .whereArrayContains("participants", currentMentorId)
-                    .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
-                    .get().await()
+        val query = db.collection("chats")
+            .whereArrayContains("participants", currentMentorId)
+            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
 
-                val chatListItems = mutableListOf<MentorChatListItem>()
+        // Gunakan .addSnapshotListener, BUKAN .get()
+        query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e("MentorChatListVM", "Error mendengarkan chat", error)
+                _isLoading.value = false
+                return@addSnapshotListener
+            }
 
-                for (doc in chatRoomsSnapshot.documents) {
-                    val participants = doc.get("participants") as? List<*>
-                    val menteeId = participants?.find { it != currentMentorId } as? String
+            if (snapshot != null) {
 
-                    if (menteeId != null) {
-                        val userQuery = db.collection("users")
-                            .whereEqualTo("userId", menteeId)
-                            .limit(1)
-                            .get()
-                            .await()
+                viewModelScope.launch {
+                    val chatListItems = mutableListOf<MentorChatListItem>()
+                    for (doc in snapshot.documents) {
+                        val participants = doc.get("participants") as? List<*>
+                        val menteeId = participants?.find { it != currentMentorId } as? String
 
-                        if (!userQuery.isEmpty) {
-                            val userProfile = userQuery.documents[0].toObject(User::class.java)
+                        if (menteeId != null) {
+                            val userQuery = db.collection("users")
+                                .whereEqualTo("userId", menteeId)
+                                .limit(1)
+                                .get()
+                                .await()
 
-                            // ========================================================
-                            // PERBAIKAN NAMA PARAMETER ADA DI SINI
-                            // ========================================================
-                            chatListItems.add(
-                                MentorChatListItem(
-                                    chatRoomId = doc.id,
-                                    menteeId = menteeId,
-                                    menteeName = userProfile?.displayName ?: "User", // <-- Diperbaiki
-                                    menteePhotoUrl = userProfile?.photoUrl ?: "",     // <-- Diperbaiki
-                                    lastMessage = doc.getString("lastMessageText") ?: "",
-                                    lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now()
+                            if (!userQuery.isEmpty) {
+                                val userProfile = userQuery.documents[0].toObject(User::class.java)
+                                val unreadCountQuery = db.collection("chats").document(doc.id).collection("messages")
+                                    .whereEqualTo("senderId", menteeId)
+                                    .whereEqualTo("isRead", false)
+                                    .get().await()
+                                val unreadCount = unreadCountQuery.size()
+
+                                chatListItems.add(
+                                    MentorChatListItem(
+                                        chatRoomId = doc.id,
+                                        menteeId = menteeId,
+                                        menteeName = userProfile?.displayName ?: "User",
+                                        menteePhotoUrl = userProfile?.photoUrl ?: "",
+                                        lastMessage = doc.getString("lastMessageText") ?: "",
+                                        lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now(),
+                                        unreadCount = unreadCount
+                                    )
                                 )
-                            )
-                        } else {
-                            Log.w("MentorChatListVM", "Profil mentee dengan userId '$menteeId' TIDAK DITEMUKAN di koleksi 'users'.")
+                            }
                         }
                     }
+                    _chatList.value = chatListItems
+                    _isLoading.value = false
                 }
-                _chatList.value = chatListItems
-            } catch (e: Exception) {
-                Log.e("MentorChatListVM", "Gagal mengambil daftar chat mentor", e)
-            } finally {
-                _isLoading.value = false
             }
         }
     }
