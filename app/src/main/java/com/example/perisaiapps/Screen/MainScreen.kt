@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.Component.BottomBar
+import com.example.perisaiapps.ui.screen.UserChatListScreen
 
 @Composable
 // 1. Terima NavController utama dari AppNavigation
@@ -35,6 +36,9 @@ fun MainScreen(mainNavController: NavController) {
             }
             composable("mentor") {
                 MentorListScreen(navController = mainNavController)
+            }
+            composable("user_chat_list") {
+                UserChatListScreen(navController = mainNavController)
             }
             composable("profile") {
                 ProfileScreen(navController = mainNavController)

@@ -36,6 +36,7 @@ import com.example.perisaiapps.Screen.MainScreen
 import com.example.perisaiapps.Screen.MentorListScreen
 import com.example.perisaiapps.Screen.SplashScreen
 import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
+import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
 import com.example.perisaiapps.ui.theme.PerisaiAppsDarkTheme
 import com.google.firebase.auth.FirebaseAuth
 
@@ -84,6 +85,18 @@ fun AppNavigation() {
 
         composable("Mentor") {
             MentorListScreen(navController = navController)
+        }
+        composable(
+            route = "detail_chat/{chatId}",
+            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            PerisaiAppsDarkTheme {
+                DetailChatScreen(
+                    chatId = chatId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
         composable(
             route = "detail_lomba/{lombaId}", // Definisikan rute dengan argumen {lombaId}

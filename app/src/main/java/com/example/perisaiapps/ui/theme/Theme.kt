@@ -11,16 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val AppLightColorScheme = lightColorScheme(
+    primary = Color(0xFF6200EE), // Warna ungu sebagai primary di mode terang
+    background = Color(0xFFF5F5F5), // Background abu-abu sangat muda
+    surface = Color.White,
+    onSurface = Color.Black,
+    surfaceVariant = Color(0xFFE0E0E0), // Warna kartu di mode terang
+    onSurfaceVariant = Color.Black.copy(alpha = 0.6f)
+    // ... definisikan warna lain agar cocok
 )
 private val darkPurpleBlue = Color(0xFF120E26)
 private val cardBackgroundColor = Color(0xFF1F1A38)
@@ -47,8 +45,7 @@ private val AppDarkColorScheme = darkColorScheme(
 
 @Composable
 fun PerisaiAppsTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    darkTheme: Boolean = true,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -57,9 +54,8 @@ fun PerisaiAppsTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> AppDarkColorScheme // Gunakan skema warna kustom kita
+        else -> AppLightColorScheme      // Gunakan skema warna terang
     }
 
     MaterialTheme(

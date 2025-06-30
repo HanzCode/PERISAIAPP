@@ -1,4 +1,4 @@
-package com.example.perisaiapps.ui.screen.mentor
+package com.example.perisaiapps.ui.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,15 +19,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.perisaiapps.Model.MentorChatListItem
-import com.example.perisaiapps.viewmodel.MentorChatListViewModel // Pastikan import ini ada dan benar
+import com.example.perisaiapps.Model.UserChatListItem
+import com.example.perisaiapps.viewmodel.UserChatListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatListScreen(
-    // DEFINISI FUNGSI DIPERBAIKI: Menerima NavController
+fun UserChatListScreen(
     navController: NavController,
-    viewModel: MentorChatListViewModel = viewModel()
+    viewModel: UserChatListViewModel = viewModel()
 ) {
     val chatList by viewModel.chatList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -35,7 +34,7 @@ fun ChatListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pesan Masuk", fontWeight = FontWeight.Bold) },
+                title = { Text("Pesan Saya") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
@@ -49,7 +48,7 @@ fun ChatListScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (chatList.isEmpty()) {
                 Text(
-                    "Belum ada pesan yang masuk.",
+                    "Anda belum memiliki percakapan.",
                     modifier = Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -59,10 +58,10 @@ fun ChatListScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(chatList, key = { it.chatRoomId }) { chatItem ->
-                        MentorChatRow(
+
+                        UserChatRow(
                             chatItem = chatItem,
                             onClick = {
-                                // LOGIKA NAVIGASI DITANGANI LANGSUNG DI SINI
                                 navController.navigate("detail_chat/${chatItem.chatRoomId}")
                             }
                         )
@@ -74,7 +73,7 @@ fun ChatListScreen(
 }
 
 @Composable
-fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
+fun UserChatRow(chatItem: UserChatListItem, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -84,22 +83,25 @@ fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = chatItem.menteePhotoUrl,
-                contentDescription = "Foto ${chatItem.menteeName}",
+                // Di sini kita ambil properti dari 'chatItem'
+                model = chatItem.mentorPhotoUrl,
+                contentDescription = "Foto ${chatItem.mentorName}",
                 modifier = Modifier.size(56.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = chatItem.menteeName,
+                    // Ambil properti dari 'chatItem'
+                    text = chatItem.mentorName,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
                 Text(
-                    text = chatItem.lastMessage.ifBlank { "Belum ada pesan." },
+                    // Ambil properti dari 'chatItem'
+                    text = chatItem.lastMessage.ifBlank { "Belum ada pesan" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

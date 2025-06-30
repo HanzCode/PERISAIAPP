@@ -143,8 +143,7 @@ private fun ProfileContent(mentor: Mentor, onLogout: () -> Unit) {
 }
 
 
-// --- Composable Helper (ProfileHeader, dll) tidak perlu diubah ---
-// --- Salin dari kode sebelumnya, mereka hanya menerima data ---
+
 
 @Composable
 fun ProfileHeader(mentor: Mentor) {

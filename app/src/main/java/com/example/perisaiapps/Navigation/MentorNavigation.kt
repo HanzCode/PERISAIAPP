@@ -3,13 +3,11 @@ package com.example.perisaiapps.Navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,20 +15,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.perisaiapps.Model.Mentor
 import com.example.perisaiapps.ui.screen.mentor.ChatListScreen
 import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
 import com.example.perisaiapps.ui.screen.mentor.EditMentorProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.MentorProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.NotesScreen
 
-
 sealed class MentorScreen(val route: String, val title: String, val icon: ImageVector) {
-//    object Beranda : MentorScreen("mentor_beranda", "Beranda", Icons.Default.Home)
     object Chat : MentorScreen("mentor_chat", "Chat", Icons.Default.Chat)
     object Profile : MentorScreen("mentor_profile", "Profil", Icons.Default.Person)
 }
-
 
 val mentorBottomNavItems = listOf(
     MentorScreen.Chat,
@@ -78,10 +72,9 @@ fun MentorMainNavigation() {
             modifier = androidx.compose.ui.Modifier.padding(innerPadding)
         ) {
             composable(MentorScreen.Chat.route) {
-                ChatListScreen(onChatClicked = { chatId ->
-                    navController.navigate("detail_chat/$chatId")
-                })
+                ChatListScreen(navController = navController)
             }
+
             composable(MentorScreen.Profile.route) {
                 MentorProfileScreen(
                     onNavigateToEdit = { mentorId ->
@@ -89,7 +82,6 @@ fun MentorMainNavigation() {
                     }
                 )
             }
-
             composable(
                 route = "edit_mentor_profile/{mentorId}",
                 arguments = listOf(navArgument("mentorId") { type = NavType.StringType })
@@ -107,8 +99,7 @@ fun MentorMainNavigation() {
                 val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
                 DetailChatScreen(
                     chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToNotes = { navController.navigate("notes/$chatId") }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(
