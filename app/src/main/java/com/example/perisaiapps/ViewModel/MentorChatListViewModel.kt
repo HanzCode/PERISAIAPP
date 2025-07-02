@@ -26,11 +26,9 @@ class MentorChatListViewModel : ViewModel() {
     val isLoading = _isLoading.asStateFlow()
 
     init {
-        // Logika init sekarang hanya memanggil fungsi listener
         listenForMentorChats()
     }
 
-    // FUNGSI INI KITA GANTI TOTAL UNTUK MENJADI REAL-TIME
     private fun listenForMentorChats() {
         val currentMentorId = auth.currentUser?.uid
         if (currentMentorId == null) {
@@ -38,21 +36,17 @@ class MentorChatListViewModel : ViewModel() {
             return
         }
         _isLoading.value = true
-
         val query = db.collection("chats")
             .whereArrayContains("participants", currentMentorId)
-            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
+            .orderBy("lastActivityTimestamp", Query.Direction.DESCENDING)
 
-        // Gunakan .addSnapshotListener, BUKAN .get()
         query.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Log.e("MentorChatListVM", "Error mendengarkan chat", error)
                 _isLoading.value = false
                 return@addSnapshotListener
             }
-
             if (snapshot != null) {
-
                 viewModelScope.launch {
                     val chatListItems = mutableListOf<MentorChatListItem>()
                     for (doc in snapshot.documents) {
@@ -61,18 +55,12 @@ class MentorChatListViewModel : ViewModel() {
 
                         if (menteeId != null) {
                             val userQuery = db.collection("users")
-                                .whereEqualTo("userId", menteeId)
-                                .limit(1)
-                                .get()
-                                .await()
+                                .whereEqualTo("userId", menteeId).limit(1).get().await()
 
                             if (!userQuery.isEmpty) {
                                 val userProfile = userQuery.documents[0].toObject(User::class.java)
-                                val unreadCountQuery = db.collection("chats").document(doc.id).collection("messages")
-                                    .whereEqualTo("senderId", menteeId)
-                                    .whereEqualTo("isRead", false)
-                                    .get().await()
-                                val unreadCount = unreadCountQuery.size()
+                                val unreadCounts = doc.get("unreadCounts") as? Map<String, Long>
+                                val unreadCount = unreadCounts?.get(currentMentorId)?.toInt() ?: 0
 
                                 chatListItems.add(
                                     MentorChatListItem(
@@ -81,7 +69,7 @@ class MentorChatListViewModel : ViewModel() {
                                         menteeName = userProfile?.displayName ?: "User",
                                         menteePhotoUrl = userProfile?.photoUrl ?: "",
                                         lastMessage = doc.getString("lastMessageText") ?: "",
-                                        lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now(),
+                                        lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
                                         unreadCount = unreadCount
                                     )
                                 )

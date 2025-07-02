@@ -71,13 +71,11 @@ class ProfileViewModel : ViewModel() {
 
         MediaManager.get().upload(imageUri).unsigned(uploadPreset).option("cloud_name", cloudName)
             .callback(object : UploadCallback {
-                // --- PERBAIKAN 2: Tambahkan metode yang wajib ada ---
                 override fun onStart(requestId: String?) {
                     Log.d("CloudinaryUpload", "Upload foto profil dimulai...")
                 }
 
                 override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
-                    // Bisa digunakan untuk progress bar jika perlu
                 }
 
                 override fun onReschedule(requestId: String?, error: ErrorInfo?) {

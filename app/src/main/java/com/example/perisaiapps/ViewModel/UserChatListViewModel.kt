@@ -35,12 +35,10 @@ class UserChatListViewModel : ViewModel() {
             _isLoading.value = false
             return
         }
-
         _isLoading.value = true
-
         val query = db.collection("chats")
             .whereArrayContains("participants", currentUserId)
-            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
+            .orderBy("lastActivityTimestamp", Query.Direction.DESCENDING)
 
         query.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -48,7 +46,6 @@ class UserChatListViewModel : ViewModel() {
                 _isLoading.value = false
                 return@addSnapshotListener
             }
-
             if (snapshot != null) {
                 viewModelScope.launch {
                     val chatListItems = mutableListOf<UserChatListItem>()
@@ -58,20 +55,32 @@ class UserChatListViewModel : ViewModel() {
 
                         if (mentorId != null) {
                             val mentorQuery = db.collection("Mentor")
-                                .whereEqualTo("userId", mentorId)
-                                .limit(1)
-                                .get()
-                                .await()
+                                .whereEqualTo("userId", mentorId).limit(1).get().await()
 
                             if (!mentorQuery.isEmpty) {
                                 val mentorProfile = mentorQuery.documents[0].toObject(Mentor::class.java)
+                                Log.d("ChatListDebug", "--- Memproses Chat Room: ${doc.id} ---")
 
-                                // LOGIKA UNTUK MENGHITUNG PESAN BELUM DIBACA
-                                val unreadCountQuery = db.collection("chats").document(doc.id).collection("messages")
-                                    .whereEqualTo("senderId", mentorId) // Pesan dari MENTOR
-                                    .whereEqualTo("isRead", false)      // Yang belum dibaca
-                                    .get().await()
-                                val unreadCount = unreadCountQuery.size()
+                                // Log 1: Lihat isi mentah dari field unreadCounts
+                                val rawUnreadCounts = doc.get("unreadCounts")
+                                Log.d("ChatListDebug", "Data mentah unreadCounts: $rawUnreadCounts (Tipe: ${rawUnreadCounts?.javaClass?.simpleName})")
+
+                                // Log 2: Lihat hasil setelah di-cast ke Map<String, Long>
+                                val unreadCounts = rawUnreadCounts as? Map<String, Long>
+                                Log.d("ChatListDebug", "Data setelah cast ke Map: $unreadCounts")
+
+                                // Log 3: Lihat UID yang kita gunakan untuk mencari
+                                Log.d("ChatListDebug", "Mencari hitungan untuk currentUserId: $currentUserId")
+
+                                // Log 4: Lihat nilai spesifik yang didapat dari map
+                                val countValue = unreadCounts?.get(currentUserId)
+                                Log.d("ChatListDebug", "Nilai yang didapat dari map: $countValue (Tipe: ${countValue?.javaClass?.simpleName})")
+
+                                // Log 5: Lihat hasil akhir setelah konversi dan default
+                                val unreadCount = countValue?.toInt() ?: 0
+                                Log.d("ChatListDebug", "Hasil akhir unreadCount: $unreadCount")
+                                Log.d("ChatListDebug", "--------------------------------------------------")
+//                                unreadCount = unreadCounts?.get(currentUserId)?.toInt() ?: 0
 
                                 chatListItems.add(
                                     UserChatListItem(
@@ -80,8 +89,8 @@ class UserChatListViewModel : ViewModel() {
                                         mentorName = mentorProfile?.name ?: "Mentor",
                                         mentorPhotoUrl = mentorProfile?.photoUrl ?: "",
                                         lastMessage = doc.getString("lastMessageText") ?: "",
-                                        lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp") ?: Timestamp.now(),
-                                        unreadCount = unreadCount // Masukkan hasil hitungan
+                                        lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
+                                        unreadCount = unreadCount
                                     )
                                 )
                             }

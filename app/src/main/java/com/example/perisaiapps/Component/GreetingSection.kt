@@ -29,9 +29,9 @@ fun GreetingSection(
     ) {
         Column {
             Text(
-                text = "Selamat Datang,",
+                text = "Welcome Inovator,",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = name,

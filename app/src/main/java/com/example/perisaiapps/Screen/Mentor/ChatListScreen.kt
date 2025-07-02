@@ -1,5 +1,6 @@
 package com.example.perisaiapps.ui.screen.mentor
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,20 +13,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.MentorChatListItem
-import com.example.perisaiapps.viewmodel.MentorChatListViewModel // Pastikan import ini ada dan benar
+import com.example.perisaiapps.viewmodel.MentorChatListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
-    // DEFINISI FUNGSI DIPERBAIKI: Menerima NavController
     navController: NavController,
     viewModel: MentorChatListViewModel = viewModel()
 ) {
@@ -62,7 +64,6 @@ fun ChatListScreen(
                         MentorChatRow(
                             chatItem = chatItem,
                             onClick = {
-                                // LOGIKA NAVIGASI DITANGANI LANGSUNG DI SINI
                                 navController.navigate("detail_chat/${chatItem.chatRoomId}")
                             }
                         )
@@ -86,7 +87,7 @@ fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
             AsyncImage(
                 model = chatItem.menteePhotoUrl,
                 contentDescription = "Foto ${chatItem.menteeName}",
-                modifier = Modifier.size(56.dp).clip(CircleShape),
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -100,9 +101,10 @@ fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
                 )
                 Text(
                     text = chatItem.lastMessage.ifBlank { "Belum ada pesan." },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (chatItem.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
-                    color = if (chatItem.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (chatItem.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                        color = if (chatItem.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -114,10 +116,12 @@ fun MentorChatRow(chatItem: MentorChatListItem, onClick: () -> Unit) {
                 ) {
                     Text(
                         text = chatItem.unreadCount.toString(),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = Color.Black,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
     }
-    }
+}

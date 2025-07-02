@@ -8,6 +8,6 @@ data class MentorChatListItem(
     val menteeName: String = "",
     val menteePhotoUrl: String = "",
     val lastMessage: String = "",
-    val lastMessageTimestamp: Timestamp = Timestamp.now(),
+    val lastActivityTimestamp: Timestamp = Timestamp.now(),
     val unreadCount: Int = 0
 )
