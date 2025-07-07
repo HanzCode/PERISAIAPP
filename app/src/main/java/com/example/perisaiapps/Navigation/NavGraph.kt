@@ -48,7 +48,7 @@ import java.nio.charset.StandardCharsets
 
 @SuppressLint("ComposableDestinationInComposeScope")
 @Composable
-fun AppNavigation() {
+fun AppNavigation(startChatId: String? = null) {
     val navController = rememberNavController()
     // Tentukan layar awal di sini, mungkin perlu cek status login awal Firebase
     val startDestination = "splash" // Atau "home" jika sudah login
@@ -65,6 +65,11 @@ fun AppNavigation() {
                     }
                 }
             }
+        }
+    }
+    LaunchedEffect(startChatId) {
+        if (startChatId != null) {
+            navController.navigate("detail_chat/$startChatId")
         }
     }
 

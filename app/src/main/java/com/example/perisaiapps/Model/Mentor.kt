@@ -11,5 +11,6 @@ data class Mentor(
     val deskripsi: String = "",
     val photoUrl: String = "",
     val bersediaKah : Boolean = true,
-    val achievements: List<String>? = null
+    val achievements: List<String>? = null,
+    val fcmToken: String = ""
 )

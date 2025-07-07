@@ -44,10 +44,7 @@ class AddUserViewModel : ViewModel() {
                 val newUser = authResult.user
 
                 if (newUser != null) {
-                    // ==========================================================
-                    // PERBAIKAN UTAMA DI SINI
-                    // Kita membuat objek UserProfile dengan field 'userId'
-                    // ==========================================================
+
                     val userProfile = UserProfile(
                         userId = newUser.uid, // <-- Mengisi field userId dengan UID dari Auth
                         displayName = displayName.value.trim(),
