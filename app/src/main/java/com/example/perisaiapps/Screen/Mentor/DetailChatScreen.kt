@@ -1,6 +1,10 @@
 package com.example.perisaiapps.ui.screen.mentor
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,8 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,23 +22,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.ChatMessage
-import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.example.perisaiapps.viewmodel.ChatViewModel
-import com.google.common.io.Files.append
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +47,7 @@ fun DetailChatScreen(
     chatId: String,
     onNavigateBack: () -> Unit,
     onNavigateToNotes: () -> Unit,
+    navController: NavController,
     viewModel: ChatViewModel = viewModel()
 ) {
     // Ambil pesan secara real-time
@@ -61,6 +67,11 @@ fun DetailChatScreen(
     // Akan berjalan sekali saat layar dibuka
     LaunchedEffect(key1 = chatId) {
         viewModel.markMessagesAsRead(chatId)
+    }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.sendImageMessage(chatId, it) }
     }
 
     Scaffold(
@@ -88,7 +99,8 @@ fun DetailChatScreen(
             MessageInput(
                 value = viewModel.messageText.value,
                 onValueChange = { viewModel.messageText.value = it },
-                onSendClick = { viewModel.sendMessage(chatId) }
+                onSendClick = { viewModel.sendMessage(chatId) },
+                onImageClick = { imagePickerLauncher.launch("image/*") }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -109,15 +121,16 @@ fun DetailChatScreen(
                 // ===============================================================
                 MessageBubble(
                     message = message,
-                    isFromCurrentUser = message.senderId == currentUserId
+                    isFromCurrentUser = message.senderId == currentUserId,
+                    navController = navController
+
                 )
             }
         }
     }
 }
-
 @Composable
-fun MessageBubble(message: ChatMessage, isFromCurrentUser: Boolean) {
+fun MessageBubble(message: ChatMessage, isFromCurrentUser: Boolean, navController: NavController) {
     val horizontalArrangement = if (isFromCurrentUser) Arrangement.End else Arrangement.Start
     val bubbleColor = if (isFromCurrentUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     val textColor = if (isFromCurrentUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
@@ -131,22 +144,41 @@ fun MessageBubble(message: ChatMessage, isFromCurrentUser: Boolean) {
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
                 .background(bubbleColor)
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = if (message.type == "IMAGE") 4.dp else 16.dp, vertical = if (message.type == "IMAGE") 4.dp else 10.dp)
         ) {
-            // Panggil fungsi helper yang baru
-            val annotatedText = buildAnnotatedStringWithLinks(message.text)
-
-            ClickableText(
-                text = annotatedText,
-                // Berikan style dasar (tanpa warna) ke ClickableText
-                style = MaterialTheme.typography.bodyLarge.copy(color = textColor),
-                onClick = { offset ->
-                    annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                        .firstOrNull()?.let { annotation ->
-                            uriHandler.openUri(annotation.item)
+            // Logika 'when' sekarang menjadi satu-satunya sumber konten
+            when (message.type) {
+                "IMAGE" -> {
+                    AsyncImage(
+                        model = message.imageUrl,
+                        contentDescription = "Gambar terkirim",
+                        modifier = Modifier
+                            .sizeIn(maxWidth = 200.dp, maxHeight = 250.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                        message.imageUrl?.let { url ->
+                            // Encode URL agar aman dikirim sebagai argumen
+                            val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.name())
+                            navController.navigate("full_screen_image/$encodedUrl")
                         }
+                    },
+                        contentScale = ContentScale.Fit
+                    )
                 }
-            )
+                else -> { // Default ke Teks
+                    val annotatedText = buildAnnotatedStringWithLinks(message.text)
+                    ClickableText(
+                        text = annotatedText,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+                        onClick = { offset ->
+                            annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                .firstOrNull()?.let { annotation ->
+                                    uriHandler.openUri(annotation.item)
+                                }
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -155,7 +187,8 @@ fun MessageBubble(message: ChatMessage, isFromCurrentUser: Boolean) {
 fun MessageInput(
     value: String,
     onValueChange: (String) -> Unit,
-    onSendClick: () -> Unit
+    onSendClick: () -> Unit,
+    onImageClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -164,6 +197,9 @@ fun MessageInput(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        IconButton(onClick = onImageClick) {
+            Icon(Icons.Default.Image, contentDescription = "Kirim Gambar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         TextField(
             value = value,
             onValueChange = onValueChange,

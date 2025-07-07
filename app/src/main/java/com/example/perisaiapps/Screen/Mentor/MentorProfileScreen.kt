@@ -3,7 +3,6 @@ package com.example.perisaiapps.ui.screen.mentor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,7 +37,8 @@ fun MentorProfileScreen(
     // Navigasi ke halaman edit tetap dikelola oleh NavHost
     onNavigateToEdit: (String) -> Unit,
     viewModel: MentorProfileViewModel = viewModel(),
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    onNavigateToChangePassword: () -> Unit,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     // 1. Ambil state dari ViewModel
     val mentorProfile by viewModel.mentorProfile.collectAsState()
@@ -83,16 +83,14 @@ fun MentorProfileScreen(
             .fillMaxSize()
             .padding(paddingValues)) {
             if (isLoading) {
-                // 2. Tampilkan loading indicator
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (mentorProfile != null) {
-                // 3. Jika data ada, tampilkan konten profil
                 ProfileContent(
                     mentor = mentorProfile!!,
-                    onLogout = { viewModel.logout() } // Panggil fungsi logout dari ViewModel
+                    onLogout = { viewModel.logout() }, // Panggil fungsi logout dari ViewModel
+                    onNavigateToChangePassword = onNavigateToChangePassword
                 )
             } else {
-                // Tampilkan pesan jika profil tidak ditemukan
                 Text(
                     text = "Gagal memuat profil.",
                     modifier = Modifier.align(Alignment.Center),
@@ -104,7 +102,7 @@ fun MentorProfileScreen(
 }
 
 @Composable
-private fun ProfileContent(mentor: Mentor, onLogout: () -> Unit) {
+private fun ProfileContent(mentor: Mentor, onLogout: () -> Unit, onNavigateToChangePassword: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -118,11 +116,20 @@ private fun ProfileContent(mentor: Mentor, onLogout: () -> Unit) {
             ProfileInfoCard(title = "Tentang Saya", content = mentor.deskripsi)
             Spacer(modifier = Modifier.height(16.dp))
         }
+
         item {
             ProfileAchievementsCard(achievements = mentor.achievements ?: emptyList())
         }
         item {
-            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedButton(
+                onClick = onNavigateToChangePassword,
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            ) {
+                Text("Ganti Password")
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onLogout,
                 shape = RoundedCornerShape(12.dp),
@@ -139,6 +146,8 @@ private fun ProfileContent(mentor: Mentor, onLogout: () -> Unit) {
                 )
             }
         }
+
+
     }
 }
 
@@ -156,8 +165,9 @@ fun ProfileHeader(mentor: Mentor) {
             contentDescription = "Foto profil ${mentor.name}",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
+                .width(140.dp)
+                .height(160.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.tertiary)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -240,11 +250,3 @@ fun ProfileAchievementsCard(achievements: List<String>) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MentorProfileScreenPreview() {
-    PerisaiAppsTheme {
-        // Preview kini hanya butuh onNavigateToEdit
-        MentorProfileScreen(onNavigateToEdit = {})
-    }
-}

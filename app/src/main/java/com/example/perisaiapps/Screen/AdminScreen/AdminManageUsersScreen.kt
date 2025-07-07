@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,10 +28,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.Mentor
 import com.example.perisaiapps.Model.UserProfile
+import com.example.perisaiapps.viewmodel.AdminManageUsersViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlin.collections.filter
@@ -50,7 +53,9 @@ private val userRoleColor = Color(0xFF9E9E9E)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminManageUsersScreen(navController: NavController) {
+fun AdminManageUsersScreen(navController: NavController,
+                           viewModel: AdminManageUsersViewModel = viewModel()
+) {
     var userList by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -58,6 +63,8 @@ fun AdminManageUsersScreen(navController: NavController) {
     var userToEditRole by remember { mutableStateOf<UserProfile?>(null) }
     var userToDelete by remember { mutableStateOf<UserProfile?>(null) }
     val context = LocalContext.current
+    val operationResult by viewModel.operationResult.collectAsState()
+    var userToResetPassword by remember { mutableStateOf<UserProfile?>(null) }
 
     // Mengambil data pengguna dari Firestore
     LaunchedEffect(Unit) {
@@ -73,6 +80,12 @@ fun AdminManageUsersScreen(navController: NavController) {
                 errorMessage = "Gagal mengambil data: ${exception.message}"
                 isLoading = false
             }
+    }
+    LaunchedEffect(operationResult) {
+        operationResult?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearOperationResult() // Reset agar tidak muncul lagi
+        }
     }
 
     // Tampilkan dialog di luar Scaffold agar bisa jadi overlay
@@ -110,6 +123,22 @@ fun AdminManageUsersScreen(navController: NavController) {
                 )
             },
             onDismiss = { userToDelete = null }
+        )
+    }
+    if (userToResetPassword != null) {
+        AlertDialog(
+            onDismissRequest = { userToResetPassword = null },
+            title = { Text("Reset Password?") },
+            text = { Text("Anda akan mereset password untuk ${userToResetPassword!!.displayName} menjadi password default. Lanjutkan?") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.resetPassword(userToResetPassword!!.userId)
+                    userToResetPassword = null
+                }) { Text("Ya, Reset") }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToResetPassword = null }) { Text("Batal") }
+            }
         )
     }
 
@@ -181,6 +210,7 @@ fun AdminManageUsersScreen(navController: NavController) {
                             items(filteredList, key = { it.userId }) { user ->
                                 AdminUserListItem(
                                     user = user,
+                                    onResetPasswordClick = { userToResetPassword = user },
                                     onEditRoleClick = { userToEditRole = user },
                                     onDeleteClick = { userToDelete = user }
                                 )
@@ -197,7 +227,7 @@ fun AdminManageUsersScreen(navController: NavController) {
 // --- Composable Helper untuk UI ---
 
 @Composable
-private fun AdminUserListItem(user: UserProfile, onEditRoleClick: () -> Unit, onDeleteClick: () -> Unit) {
+private fun AdminUserListItem(user: UserProfile, onEditRoleClick: () -> Unit, onDeleteClick: () -> Unit,  onResetPasswordClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -211,6 +241,9 @@ private fun AdminUserListItem(user: UserProfile, onEditRoleClick: () -> Unit, on
             Spacer(modifier = Modifier.width(8.dp))
             RoleChip(role = user.role)
             Spacer(modifier = Modifier.width(4.dp))
+            IconButton(onClick = onResetPasswordClick) {
+                Icon(Icons.Default.VpnKey, "Reset Password", tint = textColorSecondary)
+            }
             IconButton(onClick = onEditRoleClick) { Icon(Icons.Default.Edit, "Ubah Peran", tint = textColorSecondary) }
             IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, "Hapus Pengguna", tint = errorColor) }
         }

@@ -31,12 +31,10 @@ import com.example.perisaiapps.viewmodel.EditMentorProfileViewModel
 fun EditMentorProfileScreen(
     mentorId: String,
     onNavigateBack: () -> Unit,
-    // 1. Ambil instance ViewModel
     viewModel: EditMentorProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
 
-    // 2. Ambil semua state yang dibutuhkan dari ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val updateSuccess by viewModel.updateSuccess.collectAsState()
     val mentor by viewModel.mentor.collectAsState()
@@ -46,14 +44,12 @@ fun EditMentorProfileScreen(
         uri?.let { viewModel.onImageSelected(it) }
     }
 
-    // 3. Panggil loadMentorProfile sekali saat layar dibuka
     LaunchedEffect(key1 = mentorId) {
         if (mentorId.isNotBlank()) {
             viewModel.loadMentorProfile(mentorId)
         }
     }
 
-    // 4. Pantau status update untuk navigasi kembali
     LaunchedEffect(key1 = updateSuccess) {
         if (updateSuccess) {
             Toast.makeText(context, "Profil berhasil diperbarui!", Toast.LENGTH_SHORT).show()

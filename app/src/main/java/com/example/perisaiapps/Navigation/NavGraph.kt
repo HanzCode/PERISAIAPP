@@ -21,7 +21,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.perisaiapps.Model.Mentor
 import com.example.perisaiapps.Screen.AdminScreen.AddEditLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AddUserScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
@@ -36,10 +35,16 @@ import com.example.perisaiapps.Screen.MainScreen
 import com.example.perisaiapps.Screen.MentorListScreen
 import com.example.perisaiapps.Screen.SplashScreen
 import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
+import com.example.perisaiapps.screen.ChangePasswordScreen
+import com.example.perisaiapps.screen.FullScreenImageScreen
+import com.example.perisaiapps.ui.screen.EditUserProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
+import com.example.perisaiapps.ui.screen.mentor.EditMentorProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.NotesScreen
 import com.example.perisaiapps.ui.theme.PerisaiAppsTheme
 import com.google.firebase.auth.FirebaseAuth
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @SuppressLint("ComposableDestinationInComposeScope")
 @Composable
@@ -73,20 +78,24 @@ fun AppNavigation() {
         composable("home") {
             MainScreen(mainNavController = navController)
         }
-        composable("admin_dashboard_route") {
-            AdminDashboardScreen(navController = navController)
-        }
-
         composable("Lomba") {
             InfoLombaScreen(navController = navController)
+        }
+        composable("Mentor") {
+            MentorListScreen(navController = navController)
+        }
+        composable("admin_dashboard_route") {
+            AdminDashboardScreen(navController = navController)
         }
         composable("add_user_route") {
             AddUserScreen(navController = navController)
         }
-
-        composable("Mentor") {
-            MentorListScreen(navController = navController)
+        composable("edit_user_profile") {
+            PerisaiAppsTheme { // Pastikan tema diterapkan agar konsisten
+                EditUserProfileScreen(navController = navController)
+            }
         }
+
         composable(
             route = "detail_chat/{chatId}",
             arguments = listOf(navArgument("chatId") { type = NavType.StringType })
@@ -98,7 +107,9 @@ fun AppNavigation() {
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToNotes = {
                         navController.navigate("notes/$chatId")
-                    }
+
+                    },
+                    navController = navController
                 )
             }
         }
@@ -110,6 +121,19 @@ fun AppNavigation() {
             NotesScreen(
                 chatId = chatId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "full_screen_image/{imageUrl}",
+            arguments = listOf(navArgument("imageUrl") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
+            // Decode URL kembali ke format aslinya
+            val imageUrl = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
+
+            FullScreenImageScreen(
+                navController = navController,
+                imageUrl = imageUrl
             )
         }
         composable(
@@ -185,10 +209,25 @@ fun AppNavigation() {
         composable("mentor_main_route") {
             // Kita bungkus dengan tema gelap agar semua layar di dalamnya menggunakan palet baru
             PerisaiAppsTheme {
-                MentorMainNavigation()
+                MentorMainNavigation(rootNavController = navController)
             }
-
         }
+        composable(
+            route = "edit_mentor_profile/{mentorId}",
+            arguments = listOf(navArgument("mentorId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mentorId = backStackEntry.arguments?.getString("mentorId") ?: ""
+            EditMentorProfileScreen(
+                mentorId = mentorId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable("change_password") {
+            PerisaiAppsTheme { // Terapkan tema
+                ChangePasswordScreen(navController = navController)
+            }
+        }
+
     }
 }
 

@@ -1,9 +1,13 @@
 package com.example.perisaiapps.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
+import com.cloudinary.android.callback.UploadCallback
 import com.example.perisaiapps.Model.ChatMessage
 import com.example.perisaiapps.Model.SharedNote
 import com.google.firebase.Timestamp
@@ -17,7 +21,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.resume
 
 class ChatViewModel : ViewModel() {
 
@@ -28,7 +34,36 @@ class ChatViewModel : ViewModel() {
     private val _notes = MutableStateFlow<List<SharedNote>>(emptyList())
     val notes = _notes.asStateFlow()
 
-    // --- FUNGSI sendMessage DIPERBAIKI TOTAL ---
+
+    private suspend fun uploadImageToCloudinary(uri: Uri): String? {
+        return suspendCancellableCoroutine { continuation ->
+            val requestId = MediaManager.get().upload(uri)
+                .callback(object : UploadCallback {
+                    override fun onStart(requestId: String) { Log.d("ChatVM_Cloudinary", "Upload gambar dimulai...") }
+                    override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
+                    override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                        val secureUrl = resultData["secure_url"] as? String
+                        Log.d("ChatVM_Cloudinary", "Upload gambar berhasil: $secureUrl")
+                        if (continuation.isActive) {
+                            continuation.resume(secureUrl)
+                        }
+                    }
+                    override fun onError(requestId: String, error: ErrorInfo) {
+                        Log.e("ChatVM_Cloudinary", "Upload gambar gagal: ${error.description}")
+                        if (continuation.isActive) {
+                            continuation.resume(null)
+                        }
+                    }
+                    override fun onReschedule(requestId: String, error: ErrorInfo) {}
+                }).dispatch()
+
+            continuation.invokeOnCancellation {
+                MediaManager.get().cancelRequest(requestId)
+                Log.d("ChatVM_Cloudinary", "Upload gambar dibatalkan.")
+            }
+        }
+    }
+
     fun sendMessage(chatRoomId: String) {
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null || messageText.value.isBlank() || chatRoomId.isBlank()) return
@@ -39,20 +74,15 @@ class ChatViewModel : ViewModel() {
         val textToSend = messageText.value
         val now = Timestamp.now()
 
-        // Reset field input di UI segera agar terasa responsif
         messageText.value = ""
 
         viewModelScope.launch {
             val chatRoomRef = db.collection("chats").document(chatRoomId)
             try {
-                // --- LOGIKA PENULISAN BARU YANG LEBIH AMAN ---
 
-                // Langkah 1: Buat/Update dokumen chat utama untuk memastikan field 'participants' ada
-                // Ini penting agar kueri 'whereArrayContains' di list chat tidak gagal
                 val initialChatData = mapOf("participants" to listOf(currentUserId, otherUserId))
                 chatRoomRef.set(initialChatData, SetOptions.merge()).await()
 
-                // Langkah 2: Tambahkan dokumen pesan baru ke sub-koleksi
                 val messageData = mapOf(
                     "text" to textToSend,
                     "senderId" to currentUserId,
@@ -61,8 +91,6 @@ class ChatViewModel : ViewModel() {
                 )
                 chatRoomRef.collection("messages").add(messageData).await()
 
-                // Langkah 3: Lakukan UPDATE terpisah untuk menaikkan hitungan dan info pesan terakhir
-                // .update() akan membuat field jika belum ada dan bisa menjalankan increment
                 val updateData = mapOf(
                     "lastActivityTimestamp" to now,
                     "lastMessageText" to textToSend,
@@ -104,6 +132,52 @@ class ChatViewModel : ViewModel() {
                 Log.d("ChatVM", "Unread count dan activity timestamp diupdate.")
             } catch (e: Exception) {
                 Log.e("ChatVM", "Gagal mereset unread count", e)
+            }
+        }
+    }
+    fun sendImageMessage(chatRoomId: String, imageUri: Uri) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val participants = chatRoomId.split("_")
+        val otherUserId = participants.firstOrNull { it != currentUserId } ?: return
+
+        viewModelScope.launch {
+            // Tampilkan loading di UI jika perlu
+
+            // 1. Unggah gambar ke Cloudinary
+            val imageUrl = uploadImageToCloudinary(imageUri) // Gunakan fungsi yg sudah ada
+            if (imageUrl == null) {
+                Log.e("ChatVM", "Gagal mendapatkan URL gambar dari Cloudinary")
+                // Tampilkan pesan error ke user jika perlu
+                return@launch
+            }
+
+            // 2. Siapkan data pesan gambar
+            val messageData = mapOf(
+                "text" to "[Gambar]", // Teks placeholder untuk notifikasi/lastMessage
+                "imageUrl" to imageUrl,
+                "type" to "IMAGE",
+                "senderId" to currentUserId,
+                "timestamp" to Timestamp.now(),
+                "isRead" to false
+            )
+
+            // 3. Simpan ke Firestore (logika mirip sendMessage)
+            val chatRoomRef = db.collection("chats").document(chatRoomId)
+            val newMessageRef = chatRoomRef.collection("messages").document()
+
+            try {
+                db.runBatch { batch ->
+                    batch.set(newMessageRef, messageData)
+                    val chatRoomUpdateData = mapOf(
+                        "participants" to listOf(currentUserId, otherUserId),
+                        "lastActivityTimestamp" to messageData["timestamp"] as Timestamp,
+                        "lastMessageText" to "[Gambar]",
+                        "unreadCounts.${otherUserId}" to FieldValue.increment(1)
+                    )
+                    batch.update(chatRoomRef, chatRoomUpdateData)
+                }.await()
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal mengirim pesan gambar", e)
             }
         }
     }

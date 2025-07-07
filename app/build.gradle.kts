@@ -82,13 +82,18 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
+
+    //FIREBASE
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-functions-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Cloudinary. Pastikan versi ini sesuai atau gunakan alias dari libs jika ada
-    implementation("com.cloudinary:cloudinary-android:2.4.0") // Ubah versi jika perlu
+    implementation("com.cloudinary:cloudinary-android:2.4.0")
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
