@@ -6,8 +6,10 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -16,6 +18,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.ui.screen.mentor.ChatListScreen
 import com.example.perisaiapps.ui.screen.mentor.MentorProfileScreen
+import com.example.perisaiapps.viewmodel.MentorChatListViewModel
 
 sealed class MentorScreen(val route: String, val title: String, val icon: ImageVector) {
     object Chat : MentorScreen("mentor_chat", "Chat", Icons.Default.Chat)
@@ -35,6 +38,9 @@ fun MentorMainNavigation(
     // NavController ini hanya untuk mengurus perpindahan antar tab di bawah
     val nestedNavController = rememberNavController()
 
+    val chatListViewModel: MentorChatListViewModel = viewModel()
+    val totalUnreadCount by chatListViewModel.totalUnreadCount.collectAsState()
+
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
@@ -52,7 +58,24 @@ fun MentorMainNavigation(
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
+                        icon = {
+                            // 3. Logika untuk menampilkan badge notifikasi
+                            if (screen.route == MentorScreen.Chat.route) {
+                                BadgedBox(
+                                    badge = {
+                                        if (totalUnreadCount > 0) {
+                                            // Badge akan muncul jika ada pesan belum dibaca
+                                            Badge { Text(totalUnreadCount.toString()) }
+                                        }
+                                    }
+                                ) {
+                                    Icon(screen.icon, contentDescription = screen.title)
+                                }
+                            } else {
+                                // Untuk ikon lain, tampilkan seperti biasa
+                                Icon(screen.icon, contentDescription = screen.title)
+                            }
+                        },
                         label = { Text(screen.title) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -62,6 +85,7 @@ fun MentorMainNavigation(
                             indicatorColor = MaterialTheme.colorScheme.background
                         )
                     )
+
                 }
             }
         }
@@ -74,7 +98,7 @@ fun MentorMainNavigation(
         ) {
             composable(MentorScreen.Chat.route) {
                 // Berikan rootNavController agar bisa navigasi ke detail_chat
-                ChatListScreen(navController = rootNavController)
+                ChatListScreen(navController = rootNavController, viewModel = chatListViewModel)
             }
             composable(MentorScreen.Profile.route) {
                 MentorProfileScreen(
@@ -91,3 +115,5 @@ fun MentorMainNavigation(
         }
     }
 }
+
+

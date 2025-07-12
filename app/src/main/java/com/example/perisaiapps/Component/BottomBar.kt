@@ -5,6 +5,8 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -13,20 +15,17 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.perisaiapps.Model.BottomNavItem
 
 @Composable
-fun BottomBar(navController: NavController){
+fun BottomBar(navController: NavController, totalUnreadCount: Int){
     val items = listOf(
         BottomNavItem("Home", Icons.Default.Home, "home"),
         BottomNavItem("Info Lomba", Icons.Default.Notifications, "lomba"),
         BottomNavItem("Mentor", Icons.Default.Person, "mentor"),
-        // ================== TAMBAHKAN ITEM BARU DI SINI ==================
         BottomNavItem("Pesan", Icons.AutoMirrored.Filled.Chat, "user_chat_list"),
-        // =================================================================
         BottomNavItem("Profile", Icons.Default.Person, "profile")
     )
 
@@ -40,9 +39,23 @@ fun BottomBar(navController: NavController){
         items.forEach { item ->
             val selected = currentRoute == item.route
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.title) },
                 label = { Text(item.title) },
                 selected = selected,
+                icon = {
+                    if (item.route == "user_chat_list") {
+                        BadgedBox(
+                            badge = {
+                                if (totalUnreadCount > 0) {
+                                    Badge { Text(totalUnreadCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(item.icon, contentDescription = item.title)
+                        }
+                    } else {
+                        Icon(item.icon, contentDescription = item.title)
+                    }
+                },
                 onClick = {
                     if (!selected) {
                         navController.navigate(item.route) {
