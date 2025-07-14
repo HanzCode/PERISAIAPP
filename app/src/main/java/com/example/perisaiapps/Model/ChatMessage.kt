@@ -15,6 +15,6 @@ data class ChatMessage(
     val isRead: Boolean = false,
     val fileUrl: String? = null,
     val fileName: String? = null,
-    @get:Exclude val status: String = "UPLOADING", // "UPLOADING", "SENT", "FAILED"
+    @get:Exclude val status: String = "SENT", // "UPLOADING", "SENT", "FAILED"
     @get:Exclude val localUri: String? = null // Untuk pratinjau gambar/file sebelum diunggah
 )
