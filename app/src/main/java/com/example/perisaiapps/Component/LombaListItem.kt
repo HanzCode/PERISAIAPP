@@ -54,14 +54,12 @@ fun LombaListItem(
                 contentDescription = "Poster ${lomba.namaLomba}",
                 modifier = Modifier
                     .width(100.dp)
-                    .aspectRatio(3f / 4f) // Rasio poster
+                    .aspectRatio(3f / 4f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.Gray.copy(alpha = 0.2f)),
                 contentScale = ContentScale.Crop
             )
-
             Spacer(modifier = Modifier.width(16.dp))
-
             // Kolom untuk Detail Teks
             Column(
                 modifier = Modifier.weight(1f),
@@ -76,13 +74,11 @@ fun LombaListItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 // Penyelenggara
                 InfoRow(
                     icon = Icons.Default.CorporateFare,
                     text = lomba.penyelenggara
                 )
-
                 // Info Pendaftaran (Deadline)
                 InfoRow(
                     icon = Icons.Default.CalendarMonth,
@@ -92,7 +88,6 @@ fun LombaListItem(
         }
     }
 }
-
 // Composable helper kecil untuk baris info dengan ikon
 @Composable
 private fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
