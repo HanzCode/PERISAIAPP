@@ -38,6 +38,7 @@ import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
 import com.example.perisaiapps.screen.ChangePasswordScreen
 import com.example.perisaiapps.screen.FullScreenImageScreen
 import com.example.perisaiapps.ui.screen.AddParticipantsScreen
+import com.example.perisaiapps.ui.screen.CreateGroupScreen
 import com.example.perisaiapps.ui.screen.EditUserProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
 import com.example.perisaiapps.ui.screen.mentor.EditMentorProfileScreen
@@ -237,6 +238,9 @@ fun AppNavigation(startChatId: String? = null) {
             PerisaiAppsTheme { // Terapkan tema
                 ChangePasswordScreen(navController = navController)
             }
+        }
+        composable("create_group_screen") {
+            CreateGroupScreen(navController = navController)
         }
 
     }

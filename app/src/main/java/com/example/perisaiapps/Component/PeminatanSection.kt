@@ -23,10 +23,10 @@ data class PeminatanItem(val title: String, val icon: ImageVector)
 @Composable
 fun PeminatanSection(modifier: Modifier = Modifier) {
     val peminatanItems = listOf(
-        PeminatanItem("UI/UX Design", Icons.Default.DesignServices),
-        PeminatanItem("Web Dev", Icons.Default.Code),
-        PeminatanItem("Data Science", Icons.Default.QueryStats),
-        PeminatanItem("Karya Tulis", Icons.AutoMirrored.Filled.MenuBook)
+        PeminatanItem("POSTER", Icons.Default.DesignServices),
+        PeminatanItem("VIDEO", Icons.Default.Code),
+        PeminatanItem("KTI & ESSAI", Icons.Default.QueryStats),
+        PeminatanItem("DEBAT", Icons.AutoMirrored.Filled.MenuBook)
     )
 
     Column(modifier = modifier) {

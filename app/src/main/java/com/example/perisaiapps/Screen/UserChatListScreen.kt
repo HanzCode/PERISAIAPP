@@ -5,10 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +31,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.UserChatListItem
 import com.example.perisaiapps.viewmodel.UserChatListViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +42,46 @@ fun UserChatListScreen(
     val chatList by viewModel.chatList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState
+        ) {
+            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                ListItem(
+                    headlineContent = { Text("Hubungi Mentor") },
+                    supportingContent = { Text("Mulai percakapan privat dengan mentor") },
+                    leadingContent = { Icon(Icons.Default.Person, contentDescription = "Hubungi Mentor") },
+                    modifier = Modifier.clickable {
+                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) {
+                                showBottomSheet = false
+                                navController.navigate("Mentor") // Arahkan ke MentorListScreen
+                            }
+                        }
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Buat Grup Baru") },
+                    supportingContent = { Text("Mulai diskusi grup dengan mentor dan teman") },
+                    leadingContent = { Icon(Icons.Default.Groups, contentDescription = "Buat Grup Baru") },
+                    modifier = Modifier.clickable {
+                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) {
+                                showBottomSheet = false
+                                navController.navigate("create_group_screen") // Arahkan ke layar buat grup baru
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -42,6 +91,14 @@ fun UserChatListScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showBottomSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Mulai Chat Baru", tint = MaterialTheme.colorScheme.onPrimary)
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->

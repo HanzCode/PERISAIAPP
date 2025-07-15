@@ -89,6 +89,10 @@ fun DetailChatScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> uri?.let { viewModel.sendImageMessage(chatId, it) } }
 
+    val groupImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> uri?.let { viewModel.updateGroupPhoto(chatId, it) } }
+
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> uri?.let { viewModel.sendFileMessage(chatId, it) } }
@@ -170,7 +174,7 @@ fun DetailChatScreen(
                                 DropdownMenuItem(text = { Text("Lihat Anggota") }, onClick = { showParticipantsDialog = true; showMenu = false })
                                 DropdownMenuItem(text = { Text("Tambah Anggota") }, onClick = { onNavigateToAddParticipants(chatId); showMenu = false })
                                 DropdownMenuItem(text = { Text("Ubah Nama Grup") }, onClick = { showEditNameDialog = true; showMenu = false })
-                                DropdownMenuItem(text = { Text("Ubah Foto Grup") }, onClick = { imagePickerLauncher.launch("image/*"); showMenu = false })
+                                DropdownMenuItem(text = { Text("Ubah Foto Grup") }, onClick = { groupImagePickerLauncher.launch("image/*"); showMenu = false })
                             }
                         }
                     }
