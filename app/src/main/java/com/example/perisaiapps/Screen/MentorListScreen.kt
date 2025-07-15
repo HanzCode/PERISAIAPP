@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -23,13 +24,20 @@ import com.example.perisaiapps.viewmodel.MentorListViewModel
 @Composable
 fun MentorListScreen(
     navController: NavController,
-    viewModel: MentorListViewModel = viewModel()
+    viewModel: MentorListViewModel = viewModel(),
+    initialQuery: String?
+
 ) {
-    // Gunakan 'val' untuk mendelegasikan state
     val filteredMentorList by viewModel.filteredMentors.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    LaunchedEffect(key1 = initialQuery) {
+        initialQuery?.let {
+            viewModel.setInitialQuery(it)
+        }
+    }
 
     Scaffold(
         topBar = {

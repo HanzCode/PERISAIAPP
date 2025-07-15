@@ -26,6 +26,8 @@ class MentorListViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
+
+
     // State untuk daftar mentor yang sudah difilter
     val filteredMentors = _mentors
         .combine(_searchQuery) { mentors, query ->
@@ -67,5 +69,11 @@ class MentorListViewModel : ViewModel() {
     // Fungsi baru untuk memperbarui query pencarian
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+    fun setInitialQuery(query: String) {
+        // Hanya set jika query pencarian saat ini masih kosong
+        if (_searchQuery.value.isBlank()) {
+            _searchQuery.value = query
+        }
     }
 }

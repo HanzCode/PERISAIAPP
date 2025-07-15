@@ -70,13 +70,13 @@ fun HomeScreen(
                 HorizontalLombaSection(
                     lombaList = lombaList,
                     navController = navController,
-//                    modifier = Modifier.padding(horizontal = .dp)
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Section Peminatan
                 PeminatanSection(
+                    navController = navController,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }

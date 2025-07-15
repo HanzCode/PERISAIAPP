@@ -16,16 +16,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 // Data class sederhana untuk item peminatan
 data class PeminatanItem(val title: String, val icon: ImageVector)
 
 @Composable
-fun PeminatanSection(modifier: Modifier = Modifier) {
+fun PeminatanSection(navController: NavController, modifier: Modifier = Modifier) {
     val peminatanItems = listOf(
         PeminatanItem("POSTER", Icons.Default.DesignServices),
         PeminatanItem("VIDEO", Icons.Default.Code),
-        PeminatanItem("KTI & ESSAI", Icons.Default.QueryStats),
+        PeminatanItem("KTI", Icons.Default.QueryStats),
         PeminatanItem("DEBAT", Icons.AutoMirrored.Filled.MenuBook)
     )
 
@@ -36,27 +39,43 @@ fun PeminatanSection(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        // Menggunakan 2 Row untuk membuat grid 2x2 tanpa nested scrolling
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PeminatanCard(item = peminatanItems[0], modifier = Modifier.weight(1f))
-                PeminatanCard(item = peminatanItems[1], modifier = Modifier.weight(1f))
+                // 2. Teruskan aksi klik ke setiap kartu
+                peminatanItems.take(2).forEach { item ->
+                    PeminatanCard(
+                        item = item,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            // 3. Lakukan navigasi dengan argumen
+                            val encodedQuery = URLEncoder.encode(item.title, StandardCharsets.UTF_8.name())
+                            navController.navigate("mentor_list_route?initialQuery=$encodedQuery")
+                        }
+                    )
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PeminatanCard(item = peminatanItems[2], modifier = Modifier.weight(1f))
-                PeminatanCard(item = peminatanItems[3], modifier = Modifier.weight(1f))
+                peminatanItems.drop(2).forEach { item ->
+                    PeminatanCard(
+                        item = item,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val encodedQuery = URLEncoder.encode(item.title, StandardCharsets.UTF_8.name())
+                            navController.navigate("mentor_list_route?initialQuery=$encodedQuery")
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PeminatanCard(item: PeminatanItem, modifier: Modifier = Modifier) {
+private fun PeminatanCard(item: PeminatanItem, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
         modifier = modifier
             .aspectRatio(1.5f) // Persegi panjang
-            .clickable { /* TODO: Navigasi ke halaman peminatan */ },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1F1A38))
     ) {
@@ -68,7 +87,7 @@ private fun PeminatanCard(item: PeminatanItem, modifier: Modifier = Modifier) {
             Icon(
                 imageVector = item.icon,
                 contentDescription = item.title,
-                tint = Color(0xFF8A2BE2),
+                tint = Color(0xFFFFC107),
                 modifier = Modifier.size(36.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))

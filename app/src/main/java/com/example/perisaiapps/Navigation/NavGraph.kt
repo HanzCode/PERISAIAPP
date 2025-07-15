@@ -88,9 +88,9 @@ fun AppNavigation(startChatId: String? = null) {
         composable("Lomba") {
             InfoLombaScreen(navController = navController)
         }
-        composable("Mentor") {
-            MentorListScreen(navController = navController)
-        }
+//        composable("Mentor") {
+//            MentorListScreen(navController = navController,)
+//        }
         composable("admin_dashboard_route") {
             AdminDashboardScreen(navController = navController)
         }
