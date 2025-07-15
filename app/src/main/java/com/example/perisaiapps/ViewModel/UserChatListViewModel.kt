@@ -61,49 +61,44 @@ class UserChatListViewModel : ViewModel() {
                 viewModelScope.launch {
                     val chatListItems = mutableListOf<UserChatListItem>()
                     for (doc in snapshot.documents) {
-                        val participants = doc.get("participants") as? List<*>
-                        val mentorId = participants?.find { it != currentUserId } as? String
+                        val chatType = doc.getString("type") ?: "DIRECT"
+                        val unreadCounts = doc.get("unreadCounts") as? Map<String, Long>
+                        val unreadCount = unreadCounts?.get(currentUserId)?.toInt() ?: 0
 
-                        if (mentorId != null) {
-                            val mentorQuery = db.collection("Mentor")
-                                .whereEqualTo("userId", mentorId).limit(1).get().await()
-
-                            if (!mentorQuery.isEmpty) {
-                                val mentorProfile = mentorQuery.documents[0].toObject(Mentor::class.java)
-                                Log.d("ChatListDebug", "--- Memproses Chat Room: ${doc.id} ---")
-
-                                // Log 1: Lihat isi mentah dari field unreadCounts
-                                val rawUnreadCounts = doc.get("unreadCounts")
-                                Log.d("ChatListDebug", "Data mentah unreadCounts: $rawUnreadCounts (Tipe: ${rawUnreadCounts?.javaClass?.simpleName})")
-
-                                // Log 2: Lihat hasil setelah di-cast ke Map<String, Long>
-                                val unreadCounts = rawUnreadCounts as? Map<String, Long>
-                                Log.d("ChatListDebug", "Data setelah cast ke Map: $unreadCounts")
-
-                                // Log 3: Lihat UID yang kita gunakan untuk mencari
-                                Log.d("ChatListDebug", "Mencari hitungan untuk currentUserId: $currentUserId")
-
-                                // Log 4: Lihat nilai spesifik yang didapat dari map
-                                val countValue = unreadCounts?.get(currentUserId)
-                                Log.d("ChatListDebug", "Nilai yang didapat dari map: $countValue (Tipe: ${countValue?.javaClass?.simpleName})")
-
-                                // Log 5: Lihat hasil akhir setelah konversi dan default
-                                val unreadCount = countValue?.toInt() ?: 0
-                                Log.d("ChatListDebug", "Hasil akhir unreadCount: $unreadCount")
-                                Log.d("ChatListDebug", "--------------------------------------------------")
-//                                unreadCount = unreadCounts?.get(currentUserId)?.toInt() ?: 0
-
-                                chatListItems.add(
-                                    UserChatListItem(
-                                        chatRoomId = doc.id,
-                                        mentorId = mentorId,
-                                        mentorName = mentorProfile?.name ?: "Mentor",
-                                        mentorPhotoUrl = mentorProfile?.photoUrl ?: "",
-                                        lastMessage = doc.getString("lastMessageText") ?: "",
-                                        lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
-                                        unreadCount = unreadCount
-                                    )
+                        if (chatType == "GROUP") {
+                            chatListItems.add(
+                                UserChatListItem(
+                                    chatRoomId = doc.id,
+                                    mentorId = "", // Tidak relevan untuk grup
+                                    mentorName = doc.getString("groupName") ?: "Grup Diskusi",
+                                    mentorPhotoUrl = doc.getString("groupPhotoUrl") ?: "", // URL foto grup jika ada
+                                    lastMessage = doc.getString("lastMessageText") ?: "",
+                                    lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
+                                    unreadCount = unreadCount
                                 )
+                            )
+                        } else {
+                            val participants = doc.get("participants") as? List<*>
+                            val mentorId = participants?.find { it != currentUserId } as? String
+
+                            if (mentorId != null) {
+                                val mentorQuery = db.collection("Mentor")
+                                    .whereEqualTo("userId", mentorId).limit(1).get().await()
+
+                                if (!mentorQuery.isEmpty) {
+                                    val mentorProfile = mentorQuery.documents[0].toObject(Mentor::class.java)
+                                    chatListItems.add(
+                                        UserChatListItem(
+                                            chatRoomId = doc.id,
+                                            mentorId = mentorId,
+                                            mentorName = mentorProfile?.name ?: "Mentor",
+                                            mentorPhotoUrl = mentorProfile?.photoUrl ?: "",
+                                            lastMessage = doc.getString("lastMessageText") ?: "",
+                                            lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
+                                            unreadCount = unreadCount
+                                        )
+                                    )
+                                }
                             }
                         }
                     }

@@ -37,6 +37,7 @@ import com.example.perisaiapps.Screen.SplashScreen
 import com.example.perisaiapps.Screen.admin.AddEditMentorScreen
 import com.example.perisaiapps.screen.ChangePasswordScreen
 import com.example.perisaiapps.screen.FullScreenImageScreen
+import com.example.perisaiapps.ui.screen.AddParticipantsScreen
 import com.example.perisaiapps.ui.screen.EditUserProfileScreen
 import com.example.perisaiapps.ui.screen.mentor.DetailChatScreen
 import com.example.perisaiapps.ui.screen.mentor.EditMentorProfileScreen
@@ -106,17 +107,22 @@ fun AppNavigation(startChatId: String? = null) {
             arguments = listOf(navArgument("chatId") { type = NavType.StringType })
         ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            PerisaiAppsTheme {
-                DetailChatScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToNotes = {
-                        navController.navigate("notes/$chatId")
-
-                    },
-                    navController = navController
-                )
-            }
+            DetailChatScreen(
+                chatId = chatId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToNotes = { navController.navigate("notes/$chatId") },
+                navController = navController,
+                onNavigateToAddParticipants = { currentChatId ->
+                    navController.navigate("add_participants/$currentChatId")
+                }
+            )
+        }
+        composable(
+            route = "add_participants/{chatId}",
+            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            AddParticipantsScreen(chatId = chatId, navController = navController)
         }
         composable(
             route = "notes/{chatId}",

@@ -18,13 +18,17 @@ import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
 import com.example.perisaiapps.Model.ChatMessage
+import com.example.perisaiapps.Model.ChatRoom
 import com.example.perisaiapps.Model.SharedNote
+import com.example.perisaiapps.Model.User
+import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.functions.functions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,13 +44,21 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 import kotlin.coroutines.resume
+import kotlin.jvm.java
 
 class ChatViewModel (application: Application) : AndroidViewModel(application) {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
-    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    private val functions = Firebase.functions("asia-southeast2")
 
+    private val _chatRoomDetails = MutableStateFlow<ChatRoom?>(null)
+    val chatRoomDetails = _chatRoomDetails.asStateFlow()
+
+    private val _participantProfiles = MutableStateFlow<List<User>>(emptyList())
+    val participantProfiles = _participantProfiles.asStateFlow()
+
+    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messageText = mutableStateOf("")
     val messages = _messages.asStateFlow()
 
@@ -169,7 +181,103 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) { Log.e("PdfThumbnail", "Gagal membuat thumbnail PDF", e); null }
         }
     }
+    fun addParticipantsToGroup(chatId: String, newUserIds: List<String>, onComplete: () -> Unit) {
+        if (newUserIds.isEmpty()) {
+            onComplete()
+            return
+        }
 
+        val currentUserId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            val chatRoomRef = db.collection("chats").document(chatId)
+            try {
+                // Ambil data chat saat ini untuk memeriksa tipe & nama
+                val currentChatDoc = chatRoomRef.get().await()
+                val currentType = currentChatDoc.getString("type")
+
+                val updates = mutableMapOf<String, Any>()
+
+                // Jika ini adalah chat privat ("DIRECT") yang pertama kali diubah jadi grup
+                if (currentType == "DIRECT") {
+                    updates["type"] = "GROUP"
+                    if (currentChatDoc.getString("groupName").isNullOrBlank()) {
+                        updates["groupName"] = "Grup Diskusi" // Beri nama default
+                    }
+                }
+
+                // Gunakan FieldValue.arrayUnion untuk menambahkan anggota baru tanpa duplikasi
+                updates["participants"] = FieldValue.arrayUnion(*newUserIds.toTypedArray())
+                updates["lastActivityTimestamp"] = Timestamp.now()
+
+                // Tambahkan pesan sistem bahwa anggota baru telah ditambahkan
+                val addedUsersText = "Admin/User menambahkan anggota baru." // Anda bisa buat ini lebih detail
+                updates["lastMessageText"] = addedUsersText
+
+                // Jalankan update
+                chatRoomRef.update(updates).await()
+
+                // Kirim pesan sistem ke sub-koleksi messages
+                val systemMessage = mapOf(
+                    "text" to addedUsersText,
+                    "type" to "SYSTEM", // Tipe pesan baru untuk styling berbeda jika perlu
+                    "timestamp" to Timestamp.now(),
+                    "senderId" to currentUserId
+                )
+                chatRoomRef.collection("messages").add(systemMessage).await()
+
+                onComplete() // Panggil callback jika sukses
+
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal menambahkan peserta", e)
+                onComplete() // Tetap panggil callback agar UI tidak stuck
+            }
+        }
+    }
+    fun loadChatRoomAndParticipants(chatRoomId: String) {
+        if (chatRoomId.isBlank()) return
+        // Listener untuk dokumen chat utama
+        db.collection("chats").document(chatRoomId).addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null) return@addSnapshotListener
+
+            val room = snapshot.toObject(ChatRoom::class.java)
+            _chatRoomDetails.value = room
+
+            // Jika ada peserta, ambil profil mereka
+            room?.participants?.let { ids ->
+                fetchParticipantProfiles(ids)
+            }
+        }
+    }
+
+    fun updateGroupName(chatId: String, newName: String) {
+        if (newName.isBlank()) return
+        val chatRoomRef = db.collection("chats").document(chatId)
+        viewModelScope.launch {
+            chatRoomRef.update("groupName", newName).await()
+        }
+    }
+
+    fun updateGroupPhoto(chatId: String, imageUri: Uri) {
+        viewModelScope.launch {
+            val imageUrl = uploadToCloudinary(imageUri)
+            if (imageUrl != null) {
+                db.collection("chats").document(chatId).update("groupPhotoUrl", imageUrl).await()
+            }
+        }
+    }
+
+    private fun fetchParticipantProfiles(participantIds: List<String>) {
+        if (participantIds.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                // Ambil semua profil user/mentor dalam satu kueri 'whereIn' yang efisien
+                val result = db.collection("users").whereIn("userId", participantIds).get().await()
+                _participantProfiles.value = result.toObjects(User::class.java)
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal mengambil profil peserta", e)
+            }
+        }
+    }
 
     fun sendImageMessage(chatRoomId: String, imageUri: Uri) {
         val currentUserId = auth.currentUser?.uid ?: return
@@ -189,41 +297,56 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
             saveMessageToFirestore(chatRoomId, messageData, localId)
         }
     }
-    private fun saveMessageToFirestore(chatRoomId: String, messageData: Map<String, Any?>, localId: String? = null) {
-        val currentUserId = auth.currentUser?.uid ?: return
-        val participants = chatRoomId.split("_")
-        val otherUserId = participants.firstOrNull { it != currentUserId } ?: return
 
-        viewModelScope.launch {
-            val chatRoomRef = db.collection("chats").document(chatRoomId)
-            val newMessageRef = chatRoomRef.collection("messages").document()
-            try {
-                db.runBatch { batch ->
-                    batch.set(newMessageRef, messageData)
-                    val lastMessageText = when(messageData["type"] as String) {
-                        "IMAGE" -> "[Gambar]"
-                        "FILE" -> "[File] ${messageData["fileName"]}"
-                        else -> messageData["text"] as String
+        private fun saveMessageToFirestore(chatRoomId: String, messageData: Map<String, Any?>, localId: String? = null) {
+            val currentUserId = auth.currentUser?.uid ?: return
+
+            // Ambil daftar peserta dari state yang sudah ada, BUKAN dari chatId.
+            val currentParticipants = _chatRoomDetails.value?.participants
+            if (currentParticipants.isNullOrEmpty()) {
+                Log.e("ChatVM", "Gagal mengirim, daftar peserta kosong.")
+                if(localId != null) updateMessageStatus(localId, "FAILED")
+                return
+            }
+
+            // Cari semua lawan bicara (bisa lebih dari satu untuk grup)
+            val otherUserIds = currentParticipants.filter { it != currentUserId }
+
+            viewModelScope.launch {
+                val chatRoomRef = db.collection("chats").document(chatRoomId)
+                // Gunakan ID lokal jika ada (untuk Optimistic UI), jika tidak, buat ID baru.
+                val newMessageRef = if(localId != null) chatRoomRef.collection("messages").document(localId) else chatRoomRef.collection("messages").document()
+
+                try {
+                    db.runBatch { batch ->
+                        batch.set(newMessageRef, messageData)
+                        val lastMessageText = when(messageData["type"] as String) {
+                            "IMAGE" -> "[Gambar]"
+                            "FILE" -> "[File] ${messageData["fileName"]}"
+                            else -> messageData["text"] as String
+                        }
+
+                        val chatRoomUpdateData = mutableMapOf<String, Any>()
+                        chatRoomUpdateData["lastActivityTimestamp"] = messageData["timestamp"]!!
+                        chatRoomUpdateData["lastMessageText"] = lastMessageText
+
+                        // Naikkan unreadCount untuk SEMUA peserta lain
+                        otherUserIds.forEach { otherId ->
+                            chatRoomUpdateData["unreadCounts.${otherId}"] = FieldValue.increment(1)
+                        }
+
+                        batch.update(chatRoomRef, chatRoomUpdateData)
+                    }.await()
+                    // Hapus pesan sementara dari daftar lokal setelah berhasil disimpan
+                    if (localId != null) {
+                        _messages.update { it.filterNot { msg -> msg.id == localId } }
                     }
-                    val chatRoomUpdateData = mapOf(
-                        "participants" to listOf(currentUserId, otherUserId),
-                        "lastActivityTimestamp" to messageData["timestamp"]!!,
-                        "lastMessageText" to lastMessageText,
-                        "unreadCounts.${otherUserId}" to FieldValue.increment(1)
-                    )
-                    batch.set(chatRoomRef, chatRoomUpdateData, SetOptions.merge())
-                }.await()
-                if (localId != null) {
-                    // Cukup hapus dari list lokal, karena listener akan mengambil versi finalnya
-                    _messages.update { it.filterNot { msg -> msg.id == localId } }
+                } catch (e: Exception) {
+                    if (localId != null) updateMessageStatus(localId, "FAILED")
+                    Log.e("ChatVM", "Gagal menyimpan pesan ke Firestore", e)
                 }
-            } catch (e: Exception) {
-                if (localId != null) updateMessageStatus(localId, "FAILED")
-                Log.e("ChatVM", "Gagal menyimpan pesan ke Firestore", e)
             }
         }
-    }
-
     fun sendFileMessage(chatRoomId: String, fileUri: Uri) {
         val context = getApplication<Application>().applicationContext
         val currentUserId = auth.currentUser?.uid ?: return
@@ -268,40 +391,107 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
 
     fun downloadAndOpenFile(context: Context, url: String, fileName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val sanitizedFileName = fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                val downloadUrl = url.replace("/upload/", "/upload/fl_attachment/")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Memulai unduhan: $sanitizedFileName", Toast.LENGTH_SHORT).show()
-                }
-                val cacheDir = context.cacheDir
-                val file = File(cacheDir, sanitizedFileName)
-                val client = OkHttpClient()
-                val request = Request.Builder().url(downloadUrl).build()
-                val response = client.newCall(request).execute()
+            Toast.makeText(context, "Mempersiapkan unduhan...", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.IO) {
+                try {
+                    // 1. Ekstrak public_id dari URL asli
+                    val publicId = url.substringAfterLast("/").substringBeforeLast(".")
+                    if (publicId.isBlank()) throw Exception("Public ID tidak valid dari URL.")
 
-                if (response.isSuccessful) {
-                    response.body?.let { body ->
-                        FileOutputStream(file).use { outputStream ->
-                            outputStream.write(body.bytes())
+                    // 2. Panggil Cloud Function (ini adalah operasi jaringan)
+                    Log.d("Download", "Meminta signed URL untuk publicId: $publicId")
+                    val result = functions.getHttpsCallable("getSignedCloudinaryUrl")
+                        .call(mapOf("publicId" to publicId)).await()
+
+                    val signedUrl = (result.data as? Map<*, *>)?.get("downloadUrl") as? String
+                    if (signedUrl.isNullOrBlank()) throw Exception("Gagal mendapatkan URL unduhan dari server.")
+
+                    Log.d("Download", "Signed URL diterima. Memulai unduhan...")
+
+                    // 3. Unduh file dengan OkHttp (ini juga operasi jaringan)
+                    val sanitizedFileName = fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                    val cacheDir = context.cacheDir
+                    val file = File(cacheDir, sanitizedFileName)
+                    val client = OkHttpClient()
+                    val request = Request.Builder().url(signedUrl).build()
+                    val response = client.newCall(request).execute()
+
+                    if (response.isSuccessful) {
+                        response.body?.use { body ->
+                            FileOutputStream(file).use { outputStream ->
+                                outputStream.write(body.bytes())
+                            }
                         }
+
+                        // 4. Buka file (perlu pindah ke Main Thread)
+                        val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                        val openIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(fileUri, context.contentResolver.getType(fileUri))
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        withContext(Dispatchers.Main) {
+                            context.startActivity(openIntent)
+                        }
+                    } else {
+                        throw Exception("Gagal mengunduh: Server merespon dengan kode ${response.code}")
                     }
-                    val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                    val openIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(fileUri, context.contentResolver.getType(fileUri))
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
+                } catch (e: Exception) {
+                    Log.e("Download", "Error saat mengunduh file secara manual", e)
                     withContext(Dispatchers.Main) {
-                        context.startActivity(openIntent)
+                        Toast.makeText(
+                            context,
+                            "Gagal membuka file. Coba lagi.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                } else {
-                    throw Exception("Gagal mengunduh: Server merespon dengan kode ${response.code}")
                 }
+            }
+        }
+    }
+    fun createGroupChat(
+        initialParticipants: List<String>,
+        onGroupCreated: (newChatId: String) -> Unit
+    ) {
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        viewModelScope.launch {
+            // Buat dokumen baru dengan ID acak di koleksi 'chats'
+            val newChatRoomRef = db.collection("chats").document()
+
+            val groupName = "Grup Diskusi" // Nama default, bisa diubah nanti
+            val initialSystemMessage = "Grup telah dibuat."
+
+            val chatRoomData = mapOf(
+                "participants" to initialParticipants.distinct(),
+                "type" to "GROUP",
+                "groupName" to groupName,
+                "createdBy" to currentUserId,
+                "lastActivityTimestamp" to Timestamp.now(),
+                "lastMessageText" to initialSystemMessage,
+                "unreadCounts" to initialParticipants.associateWith { 0 } // Set unread count semua anggota jadi 0
+            )
+
+            val systemMessageData = mapOf(
+                "text" to initialSystemMessage,
+                "type" to "SYSTEM",
+                "senderId" to currentUserId,
+                "timestamp" to Timestamp.now()
+            )
+
+            try {
+                // Gunakan batch untuk menjalankan semua operasi sekaligus
+                db.runBatch { batch ->
+                    // 1. Buat dokumen chat grup utama
+                    batch.set(newChatRoomRef, chatRoomData)
+                    // 2. Tambahkan pesan sistem pertama
+                    batch.set(newChatRoomRef.collection("messages").document(), systemMessageData)
+                }.await()
+
+                // Panggil callback dengan ID grup baru agar UI bisa navigasi
+                onGroupCreated(newChatRoomRef.id)
+
             } catch (e: Exception) {
-                Log.e("Download", "Error saat mengunduh file secara manual", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Gagal membuka file. Coba lagi.", Toast.LENGTH_SHORT).show()
-                }
+                Log.e("ChatVM", "Gagal membuat grup chat baru", e)
             }
         }
     }

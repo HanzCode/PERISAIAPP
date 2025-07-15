@@ -60,29 +60,44 @@ class MentorChatListViewModel : ViewModel() {
                 viewModelScope.launch {
                     val chatListItems = mutableListOf<MentorChatListItem>()
                     for (doc in snapshot.documents) {
-                        val participants = doc.get("participants") as? List<*>
-                        val menteeId = participants?.find { it != currentMentorId } as? String
+                        val chatType = doc.getString("type") ?: "DIRECT"
+                        val unreadCounts = doc.get("unreadCounts") as? Map<String, Long>
+                        val unreadCount = unreadCounts?.get(currentMentorId)?.toInt() ?: 0
 
-                        if (menteeId != null) {
-                            val userQuery = db.collection("users")
-                                .whereEqualTo("userId", menteeId).limit(1).get().await()
-
-                            if (!userQuery.isEmpty) {
-                                val userProfile = userQuery.documents[0].toObject(User::class.java)
-                                val unreadCounts = doc.get("unreadCounts") as? Map<String, Long>
-                                val unreadCount = unreadCounts?.get(currentMentorId)?.toInt() ?: 0
-
-                                chatListItems.add(
-                                    MentorChatListItem(
-                                        chatRoomId = doc.id,
-                                        menteeId = menteeId,
-                                        menteeName = userProfile?.displayName ?: "User",
-                                        menteePhotoUrl = userProfile?.photoUrl ?: "",
-                                        lastMessage = doc.getString("lastMessageText") ?: "",
-                                        lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
-                                        unreadCount = unreadCount
-                                    )
+                        if (chatType == "GROUP") {
+                            chatListItems.add(
+                                MentorChatListItem(
+                                    chatRoomId = doc.id,
+                                    menteeId = "",
+                                    menteeName = doc.getString("groupName") ?: "Grup Diskusi",
+                                    menteePhotoUrl = doc.getString("groupPhotoUrl") ?: "",
+                                    lastMessage = doc.getString("lastMessageText") ?: "",
+                                    lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
+                                    unreadCount = unreadCount
                                 )
+                            )
+                        } else {
+                            val participants = doc.get("participants") as? List<*>
+                            val menteeId = participants?.find { it != currentMentorId } as? String
+
+                            if (menteeId != null) {
+                                val userQuery = db.collection("users")
+                                    .whereEqualTo("userId", menteeId).limit(1).get().await()
+
+                                if (!userQuery.isEmpty) {
+                                    val userProfile = userQuery.documents[0].toObject(User::class.java)
+                                    chatListItems.add(
+                                        MentorChatListItem(
+                                            chatRoomId = doc.id,
+                                            menteeId = menteeId,
+                                            menteeName = userProfile?.displayName ?: "User",
+                                            menteePhotoUrl = userProfile?.photoUrl ?: "",
+                                            lastMessage = doc.getString("lastMessageText") ?: "",
+                                            lastActivityTimestamp = doc.getTimestamp("lastActivityTimestamp") ?: Timestamp.now(),
+                                            unreadCount = unreadCount
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
