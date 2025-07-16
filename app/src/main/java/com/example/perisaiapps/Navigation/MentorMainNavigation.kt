@@ -3,6 +3,7 @@ package com.example.perisaiapps.Navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,15 +19,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.perisaiapps.ui.screen.mentor.ChatListScreen
 import com.example.perisaiapps.ui.screen.mentor.MentorProfileScreen
+import com.example.perisaiapps.ui.screen.mentor.RequestsScreen
 import com.example.perisaiapps.viewmodel.MentorChatListViewModel
 
 sealed class MentorScreen(val route: String, val title: String, val icon: ImageVector) {
     object Chat : MentorScreen("mentor_chat", "Chat", Icons.Default.Chat)
+    object Requests : MentorScreen("mentor_requests", "Permintaan", Icons.Default.HowToReg)
     object Profile : MentorScreen("mentor_profile", "Profil", Icons.Default.Person)
 }
 
 val mentorBottomNavItems = listOf(
     MentorScreen.Chat,
+    MentorScreen.Requests,
     MentorScreen.Profile
 )
 
@@ -96,6 +100,9 @@ fun MentorMainNavigation(
             startDestination = MentorScreen.Chat.route,
             modifier = androidx.compose.ui.Modifier.padding(innerPadding)
         ) {
+            composable(MentorScreen.Requests.route) {
+                RequestsScreen(navController = rootNavController)
+            }
             composable(MentorScreen.Chat.route) {
                 // Berikan rootNavController agar bisa navigasi ke detail_chat
                 ChatListScreen(navController = rootNavController, viewModel = chatListViewModel)
@@ -111,6 +118,9 @@ fun MentorMainNavigation(
                     }
 
                 )
+            }
+            composable(MentorScreen.Requests.route) {
+                RequestsScreen(navController = rootNavController)
             }
         }
     }

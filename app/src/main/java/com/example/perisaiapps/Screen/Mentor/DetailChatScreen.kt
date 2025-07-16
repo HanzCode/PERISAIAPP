@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
@@ -167,6 +168,17 @@ fun DetailChatScreen(
                 },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali") } },
                 actions = {
+                    val isMentorInChat = participants.any { it.userId == currentUserId && it.role == "mentor" }
+                    if (chatDetails?.type == "DIRECT" && isMentorInChat) {
+                        IconButton(onClick = {
+                            viewModel.completeMentorship(chatId) {
+                                // Setelah selesai, kembali ke halaman sebelumnya
+                                onNavigateBack()
+                            }
+                        }) {
+                            Icon(Icons.Default.DoneAll, contentDescription = "Selesaikan Bimbingan")
+                        }
+                    }
                     if (chatDetails?.type == "GROUP") {
                         Box {
                             IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "Menu") }

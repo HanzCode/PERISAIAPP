@@ -495,4 +495,25 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    fun completeMentorship(chatId: String, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                // Untuk chat P2P, chatId adalah gabungan menteeId dan mentorId
+                // yang juga merupakan ID dari dokumen permintaan.
+                val requestDocRef = db.collection("mentorship_requests").document(chatId)
+
+                // Update status menjadi COMPLETED
+                requestDocRef.update("status", "COMPLETED").await()
+
+                // Anda juga bisa menambahkan pesan sistem ke chat jika mau
+                // ...
+
+                onComplete() // Panggil callback jika sukses untuk navigasi kembali
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal menyelesaikan bimbingan", e)
+                // Handle error jika perlu, misal dengan Toast
+            }
+        }
+    }
+
 }
