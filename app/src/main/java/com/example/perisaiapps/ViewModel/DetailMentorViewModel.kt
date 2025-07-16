@@ -64,10 +64,12 @@ class DetailMentorViewModel : ViewModel() {
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null && snapshot.exists()) {
                     val status = snapshot.getString("status")
-                    // Jika statusnya COMPLETED, anggap seperti belum pernah request
-                    if (status == "COMPLETED") {
+
+                    // JIKA DITOLAK ATAU SUDAH SELESAI, ANGGAP BISA KIRIM REQUEST BARU
+                    if (status == "DECLINED" || status == "COMPLETED") {
                         _requestStatus.value = "NOT_SENT"
                     } else {
+                        // Jika tidak, gunakan status yang ada (PENDING, ACCEPTED)
                         _requestStatus.value = status ?: "ERROR"
                     }
                 } else {
@@ -75,7 +77,6 @@ class DetailMentorViewModel : ViewModel() {
                 }
             }
     }
-
     fun sendMentorshipRequest(mentor: Mentor) {
         val currentUser = auth.currentUser ?: return
         viewModelScope.launch {

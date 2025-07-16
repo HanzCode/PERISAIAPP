@@ -1,6 +1,11 @@
-package com.example.perisaiapps.ui.screen
+package com.example.perisaiapps.ui.screen.mentor
 
-import androidx.compose.foundation.layout.*
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -11,14 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.perisaiapps.Model.User
 import com.example.perisaiapps.viewmodel.AddGroupParticipantsViewModel
 import com.example.perisaiapps.viewmodel.ChatViewModel
-import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,22 +31,16 @@ fun AddParticipantsScreen(
     addViewModel: AddGroupParticipantsViewModel = viewModel(),
     chatViewModel: ChatViewModel = viewModel()
 ) {
-    // Ambil peserta yang sudah ada dari chat lama untuk difilter
-    // Ini asumsi chatId adalah gabungan UID, perlu disesuaikan jika grup sudah ada
-    // Cara lebih baik adalah meneruskan list participants dari layar sebelumnya.
-    // Untuk saat ini, kita sederhanakan.
-    val currentParticipants = remember { mutableStateListOf<String>() } // Akan diisi dari DB
-
     val users by addViewModel.users.collectAsState()
     var selectedUsers by remember { mutableStateOf(setOf<String>()) }
     var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(key1 = chatId) {
         // Ambil dulu data chat yang ada untuk mendapatkan daftar peserta saat ini
         com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("chats").document(chatId).get()
             .addOnSuccessListener { doc ->
                 val participants = doc.get("participants") as? List<String> ?: emptyList()
-                currentParticipants.addAll(participants)
                 addViewModel.loadUsers(participants) // Muat user KECUALI yang sudah jadi peserta
             }
     }
@@ -58,13 +55,15 @@ fun AddParticipantsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
+                    if (selectedUsers.isEmpty()) {
+                        Toast.makeText(context, "Pilih minimal satu anggota untuk ditambahkan", Toast.LENGTH_SHORT).show()
+                        return@FloatingActionButton
+                    }
                     isLoading = true
-                    val allParticipants = currentParticipants + selectedUsers.toList()
-                    chatViewModel.createGroupChat(allParticipants) { newChatId ->
+                    // Panggil fungsi yang benar dari ChatViewModel
+                    chatViewModel.addParticipantsToGroup(chatId, selectedUsers.toList()) {
                         isLoading = false
-                        // Navigasi ke grup chat yang BARU dibuat,
-                        navController.popBackStack("detail_chat/$chatId", true)
-                        navController.navigate("detail_chat/$newChatId")
+                        navController.popBackStack() // Kembali ke halaman chat setelah selesai
                     }
                 }
             ) {
@@ -93,7 +92,7 @@ fun AddParticipantsScreen(
                 ) {
                     Checkbox(
                         checked = user.userId in selectedUsers,
-                        onCheckedChange = null // Aksi sudah ditangani oleh Row
+                        onCheckedChange = null
                     )
                     Text(user.displayName, modifier = Modifier.padding(start = 8.dp))
                 }

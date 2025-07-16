@@ -38,7 +38,13 @@ fun MainScreen(mainNavController: NavController) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                HomeScreen(navController = bottomNavController)
+                // ========================================================
+                // PERBAIKAN UTAMA: Berikan KEDUA NavController ke HomeScreen
+                // ========================================================
+                HomeScreen(
+                    bottomNavController = bottomNavController,
+                    rootNavController = mainNavController
+                )
             }
             composable("lomba") {
                 InfoLombaScreen(navController = mainNavController)

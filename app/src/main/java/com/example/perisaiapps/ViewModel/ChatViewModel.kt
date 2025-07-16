@@ -65,6 +65,8 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
     private val _notes = MutableStateFlow<List<SharedNote>>(emptyList())
     val notes = _notes.asStateFlow()
 
+    private val _mentorshipStatus = MutableStateFlow("ACTIVE") // Status: ACTIVE, COMPLETED
+    val mentorshipStatus = _mentorshipStatus.asStateFlow()
 
     fun getNotes(chatRoomId: String) {
         if (chatRoomId.isBlank()) return
@@ -136,6 +138,34 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
                     val pendingMessages = currentMessages.filter { it.status != "SENT" }
                     (pendingMessages + firestoreMessages).distinctBy { it.id }.sortedByDescending { it.timestamp }
                 }
+            }
+        }
+    }
+    fun listenForMentorshipStatus(chatId: String) {
+        // Fungsi ini hanya relevan untuk chat privat (P2P) yang ID-nya gabungan UID
+        if (!chatId.contains("_")) {
+            _mentorshipStatus.value = "GROUP_CHAT" // Atau status lain untuk menandakan ini grup
+            return
+        }
+
+        // Untuk chat P2P, ID chat sama dengan ID permintaan
+        val requestDocRef = db.collection("mentorship_requests").document(chatId)
+
+        requestDocRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w("ChatVM", "Gagal listen ke status bimbingan.", error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null && snapshot.exists()) {
+                val status = snapshot.getString("status")
+                if (status == "COMPLETED") {
+                    _mentorshipStatus.value = "COMPLETED"
+                } else {
+                    _mentorshipStatus.value = "ACTIVE"
+                }
+            } else {
+                // Jika dokumen request tidak ditemukan (misal, untuk grup), anggap aktif
+                _mentorshipStatus.value = "ACTIVE"
             }
         }
     }
@@ -512,6 +542,47 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 Log.e("ChatVM", "Gagal menyelesaikan bimbingan", e)
                 // Handle error jika perlu, misal dengan Toast
+            }
+        }
+    }
+    fun leaveGroup(chatId: String, onLeaveSuccess: () -> Unit) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        // Ambil nama pengguna saat ini dari data yang sudah kita muat
+        val currentUserProfile = _participantProfiles.value.find { it.userId == currentUserId }
+        val currentUserName = currentUserProfile?.displayName ?: "Seseorang"
+
+        viewModelScope.launch {
+            val chatRoomRef = db.collection("chats").document(chatId)
+            val leaveMessage = "$currentUserName telah keluar dari grup."
+
+            try {
+                // Gunakan WriteBatch untuk menjalankan semua operasi secara atomik
+                db.runBatch { batch ->
+                    // 1. Hapus ID pengguna dari array 'participants'
+                    batch.update(chatRoomRef, "participants", FieldValue.arrayRemove(currentUserId))
+
+                    // 2. Kirim pesan sistem ke chat
+                    val systemMessageData = mapOf(
+                        "text" to leaveMessage,
+                        "type" to "SYSTEM",
+                        "senderId" to currentUserId,
+                        "timestamp" to Timestamp.now()
+                    )
+                    batch.set(chatRoomRef.collection("messages").document(), systemMessageData)
+
+                    // 3. Perbarui pesan terakhir dan timestamp di dokumen utama
+                    batch.update(chatRoomRef, mapOf(
+                        "lastActivityTimestamp" to Timestamp.now(),
+                        "lastMessageText" to leaveMessage
+                    ))
+                }.await()
+
+                // Panggil callback jika semua operasi berhasil
+                onLeaveSuccess()
+
+            } catch (e: Exception) {
+                Log.e("ChatVM", "Gagal keluar dari grup", e)
+                // Tampilkan Toast atau pesan error jika perlu
             }
         }
     }

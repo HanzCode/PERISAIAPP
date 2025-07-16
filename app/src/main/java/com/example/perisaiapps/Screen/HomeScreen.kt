@@ -23,7 +23,8 @@ private val darkBackground = Color(0xFF120E26)
 
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    bottomNavController: NavController,
+    rootNavController: NavController,
     viewModel: HomeViewModel = viewModel()
 ) {
     // Ambil semua state dari ViewModel
@@ -69,14 +70,14 @@ fun HomeScreen(
                 // Section Lomba
                 HorizontalLombaSection(
                     lombaList = lombaList,
-                    navController = navController,
+                    navController = rootNavController,
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Section Peminatan
                 PeminatanSection(
-                    navController = navController,
+                    navController = bottomNavController,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }

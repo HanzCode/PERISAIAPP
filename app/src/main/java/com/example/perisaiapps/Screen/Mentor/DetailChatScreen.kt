@@ -84,6 +84,8 @@ fun DetailChatScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showParticipantsDialog by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
+    var showLeaveGroupDialog by remember { mutableStateOf(false) }
+    val mentorshipStatus by viewModel.mentorshipStatus.collectAsState()
 
     // --- Launcher untuk memilih file/gambar ---
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -103,6 +105,7 @@ fun DetailChatScreen(
         viewModel.listenForMessages(chatId)
         viewModel.loadChatRoomAndParticipants(chatId)
         viewModel.markMessagesAsRead(chatId)
+        viewModel.listenForMentorshipStatus(chatId)
     }
 
     LaunchedEffect(key1 = messages) {
@@ -127,6 +130,28 @@ fun DetailChatScreen(
             onSave = { newName ->
                 viewModel.updateGroupName(chatId, newName)
                 showEditNameDialog = false
+            }
+        )
+    }
+    if (showLeaveGroupDialog) {
+        AlertDialog(
+            onDismissRequest = { showLeaveGroupDialog = false },
+            title = { Text("Keluar dari Grup") },
+            text = { Text("Apakah Anda yakin ingin keluar dari grup ini? Anda tidak akan bisa mengirim atau menerima pesan lagi di sini.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.leaveGroup(chatId) {
+                            // Setelah berhasil keluar, kembali ke halaman sebelumnya
+                            onNavigateBack()
+                        }
+                        showLeaveGroupDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Ya, Keluar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveGroupDialog = false }) { Text("Batal") }
             }
         )
     }
@@ -169,6 +194,25 @@ fun DetailChatScreen(
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali") } },
                 actions = {
                     val isMentorInChat = participants.any { it.userId == currentUserId && it.role == "mentor" }
+
+                    if (chatDetails?.type == "GROUP") {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "Menu") }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(text = { Text("Lihat Anggota") }, onClick = { showParticipantsDialog = true; showMenu = false })
+                                DropdownMenuItem(text = { Text("Tambah Anggota") }, onClick = { onNavigateToAddParticipants(chatId); showMenu = false })
+                                DropdownMenuItem(text = { Text("Ubah Nama Grup") }, onClick = { showEditNameDialog = true; showMenu = false })
+                                DropdownMenuItem(text = { Text("Ubah Foto Grup") }, onClick = { groupImagePickerLauncher.launch("image/*"); showMenu = false })
+                                DropdownMenuItem(
+                                    text = { Text("Keluar dari Grup", color = MaterialTheme.colorScheme.error) },
+                                    onClick = {
+                                        showLeaveGroupDialog = true
+                                        showMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                     if (chatDetails?.type == "DIRECT" && isMentorInChat) {
                         IconButton(onClick = {
                             viewModel.completeMentorship(chatId) {
@@ -179,29 +223,37 @@ fun DetailChatScreen(
                             Icon(Icons.Default.DoneAll, contentDescription = "Selesaikan Bimbingan")
                         }
                     }
-                    if (chatDetails?.type == "GROUP") {
-                        Box {
-                            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "Menu") }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(text = { Text("Lihat Anggota") }, onClick = { showParticipantsDialog = true; showMenu = false })
-                                DropdownMenuItem(text = { Text("Tambah Anggota") }, onClick = { onNavigateToAddParticipants(chatId); showMenu = false })
-                                DropdownMenuItem(text = { Text("Ubah Nama Grup") }, onClick = { showEditNameDialog = true; showMenu = false })
-                                DropdownMenuItem(text = { Text("Ubah Foto Grup") }, onClick = { groupImagePickerLauncher.launch("image/*"); showMenu = false })
-                            }
-                        }
-                    }
                     IconButton(onClick = onNavigateToNotes) { Icon(Icons.Default.Note, "Lihat Catatan") }
                 }
             )
         },
         bottomBar = {
-            MessageInput(
-                value = viewModel.messageText.value,
-                onValueChange = { viewModel.messageText.value = it },
-                onSendClick = { viewModel.sendMessage(chatId) },
-                onImageClick = { imagePickerLauncher.launch("image/*") },
-                onFileClick = { filePickerLauncher.launch("*/*") }
-            )
+            // Tentukan apakah input harus aktif atau tidak
+            val isInputEnabled = mentorshipStatus == "ACTIVE" || mentorshipStatus == "GROUP_CHAT"
+
+            if (isInputEnabled) {
+                MessageInput(
+                    value = viewModel.messageText.value,
+                    onValueChange = { viewModel.messageText.value = it },
+                    onSendClick = { viewModel.sendMessage(chatId) },
+                    onImageClick = { imagePickerLauncher.launch("image/*") },
+                    onFileClick = { filePickerLauncher.launch("*/*") }
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Sesi bimbingan telah berakhir.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         LazyColumn(
