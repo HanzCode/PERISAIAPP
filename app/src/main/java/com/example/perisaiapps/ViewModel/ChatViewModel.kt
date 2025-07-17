@@ -142,34 +142,67 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
         }
     }
     fun listenForMentorshipStatus(chatId: String) {
-        // Fungsi ini hanya relevan untuk chat privat (P2P) yang ID-nya gabungan UID
-        if (!chatId.contains("_")) {
-            _mentorshipStatus.value = "GROUP_CHAT" // Atau status lain untuk menandakan ini grup
-            return
-        }
+        val currentUser = auth.currentUser ?: return
 
-        // Untuk chat P2P, ID chat sama dengan ID permintaan
-        val requestDocRef = db.collection("mentorship_requests").document(chatId)
-
-        requestDocRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                Log.w("ChatVM", "Gagal listen ke status bimbingan.", error)
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val status = snapshot.getString("status")
-                if (status == "COMPLETED") {
-                    _mentorshipStatus.value = "COMPLETED"
-                } else {
-                    _mentorshipStatus.value = "ACTIVE"
-                }
-            } else {
-                // Jika dokumen request tidak ditemukan (misal, untuk grup), anggap aktif
+        // Pertama, cek dulu apakah ini grup chat. Jika ya, status selalu ACTIVE.
+        val chatRoomRef = db.collection("chats").document(chatId)
+        chatRoomRef.get().addOnSuccessListener { doc ->
+            if (doc.getString("type") == "GROUP") {
                 _mentorshipStatus.value = "ACTIVE"
+                return@addOnSuccessListener
+            }
+
+            // Jika ini chat privat, tentukan siapa mentee dan siapa mentor dari chatId
+            val participants = chatId.split("_")
+            // Asumsi: kita tidak tahu siapa yang login, jadi kita perlu info dari dokumen
+            val docParticipants = doc.get("participants") as? List<String>
+            if (docParticipants.isNullOrEmpty() || docParticipants.size < 2) return@addOnSuccessListener
+
+            val otherUserId =
+                docParticipants.firstOrNull { it != currentUser.uid } ?: return@addOnSuccessListener
+
+            // Logika untuk menentukan siapa mentee dan mentor
+            val menteeId: String
+            val mentorId: String
+
+            // Asumsi: user yang BUKAN mentor adalah mentee. Ini perlu data role.
+            // Untuk amannya, kita coba kedua kombinasi.
+            // Cara lebih baik adalah jika kita tahu role user saat ini.
+            // Mari kita asumsikan user saat ini adalah mentee jika ia membuka chat dengan mentor.
+            // Logika ini perlu disempurnakan jika mentor bisa memulai chat dengan user.
+
+            // Kita coba kueri dengan user saat ini sebagai mentee
+            val queryMentee = db.collection("mentorship_requests")
+                .whereEqualTo("menteeId", currentUser.uid)
+                .whereEqualTo("mentorId", otherUserId)
+                .whereEqualTo("status", "ACCEPTED")
+                .limit(1)
+
+            // Kita juga coba kueri dengan user saat ini sebagai mentor
+            val queryMentor = db.collection("mentorship_requests")
+                .whereEqualTo("menteeId", otherUserId)
+                .whereEqualTo("mentorId", currentUser.uid)
+                .whereEqualTo("status", "ACCEPTED")
+                .limit(1)
+
+            // Cek kueri pertama
+            queryMentee.get().addOnSuccessListener { snapshotMentee ->
+                if (!snapshotMentee.isEmpty) {
+                    _mentorshipStatus.value = "ACTIVE"
+                } else {
+                    // Jika kueri pertama kosong, cek kueri kedua
+                    queryMentor.get().addOnSuccessListener { snapshotMentor ->
+                        if (!snapshotMentor.isEmpty) {
+                            _mentorshipStatus.value = "ACTIVE"
+                        } else {
+                            // Jika keduanya kosong, berarti tidak ada sesi aktif
+                            _mentorshipStatus.value = "COMPLETED"
+                        }
+                    }
+                }
             }
         }
     }
-
     private suspend fun uploadToCloudinary(data: Any): String? {
     return suspendCancellableCoroutine { continuation ->
         val request = when (data) {
@@ -526,22 +559,41 @@ class ChatViewModel (application: Application) : AndroidViewModel(application) {
         }
     }
     fun completeMentorship(chatId: String, onComplete: () -> Unit) {
+        val currentUserId = auth.currentUser?.uid ?: return
+
         viewModelScope.launch {
             try {
-                // Untuk chat P2P, chatId adalah gabungan menteeId dan mentorId
-                // yang juga merupakan ID dari dokumen permintaan.
-                val requestDocRef = db.collection("mentorship_requests").document(chatId)
+                // ========================================================
+                // PERBAIKAN UTAMA ADA DI SINI
+                // Kita sekarang bisa langsung menggunakan chatId karena ID-nya sudah pasti sama
+                // ========================================================
+                val mentorshipDocRef = db.collection("mentorship_requests").document(chatId)
 
                 // Update status menjadi COMPLETED
-                requestDocRef.update("status", "COMPLETED").await()
+                val updates = mapOf(
+                    "status" to "COMPLETED",
+                    "sessionCount" to FieldValue.increment(1),
+                    "lastUpdateTimestamp" to Timestamp.now()
+                    // Kita hapus FieldValue.increment agar tidak menambah sesi jika hanya di-update
+                )
+                mentorshipDocRef.update(updates).await()
 
-                // Anda juga bisa menambahkan pesan sistem ke chat jika mau
-                // ...
+                // Kirim pesan sistem ke chat
+                val chatRoomRef = db.collection("chats").document(chatId)
+                val systemMessage = mapOf(
+                    "text" to "Sesi bimbingan telah ditandai selesai oleh mentor.",
+                    "type" to "SYSTEM",
+                    "timestamp" to Timestamp.now(),
+                    "senderId" to currentUserId
+                )
+                chatRoomRef.collection("messages").add(systemMessage).await()
+                chatRoomRef.update("lastActivityTimestamp", Timestamp.now(), "lastMessageText", systemMessage["text"]).await()
 
-                onComplete() // Panggil callback jika sukses untuk navigasi kembali
+                onComplete() // Panggil callback agar UI kembali ke halaman sebelumnya
+                Log.d("ChatVM", "Bimbingan dengan ID $chatId berhasil diselesaikan.")
+
             } catch (e: Exception) {
                 Log.e("ChatVM", "Gagal menyelesaikan bimbingan", e)
-                // Handle error jika perlu, misal dengan Toast
             }
         }
     }

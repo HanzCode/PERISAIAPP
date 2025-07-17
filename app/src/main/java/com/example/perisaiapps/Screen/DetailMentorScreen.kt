@@ -29,8 +29,7 @@ import com.example.perisaiapps.viewmodel.DetailMentorViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 private fun createChatId(uid1: String, uid2: String): String {
-    // Pastikan ID yang digabung selalu uid1 dan uid2, hanya urutannya yang dibalik
-    return if (uid1 < uid2) "${uid1}_${uid2}" else "${uid2}_${uid1}" // <-- PERBAIKAN DI SINI
+    return if (uid1 < uid2) "${uid1}_${uid2}" else "${uid2}_${uid1}"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,30 +41,10 @@ fun DetailMentorScreen(
 ) {
     val mentor by viewModel.mentor.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val requestStatus by viewModel.requestStatus.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val mentorshipRequest by viewModel.mentorshipRequest.collectAsState()
 
-    DisposableEffect(lifecycleOwner, mentorId) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshData(mentorId)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    // Panggil checkStatus HANYA setelah data mentor berhasil dimuat
-    LaunchedEffect(key1 = mentor) {
-        mentor?.userId?.let {
-            if (it.isNotBlank()) {
-                viewModel.checkRequestStatus(it)
-            }
-        }
+    LaunchedEffect(key1 = mentorId) {
+        viewModel.loadData(mentorId)
     }
 
     Scaffold(
@@ -85,37 +64,35 @@ fun DetailMentorScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                // Tentukan status dari objek. Jika objeknya null, anggap belum ada request.
+                val status = mentorshipRequest?.status ?: "NOT_SENT"
 
-                when (requestStatus) {
-                    "LOADING" -> Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                // Tampilkan loading jika data mentor belum dimuat
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(modifier = Modifier.size(32.dp))
                     }
-                    "NOT_SENT" -> ActionButton(
-                        text = "Kirim Permintaan Bimbingan",
-                        onClick = {
-                            if (mentor != null) {
-                                viewModel.sendMentorshipRequest(mentor!!)
+                } else {
+                    when (status) {
+                        "NOT_SENT", "DECLINED", "COMPLETED" -> ActionButton(
+                            text = "Kirim Permintaan Bimbingan",
+                            onClick = { if (mentor != null) viewModel.sendMentorshipRequest(mentor!!) }
+                        )
+                        "PENDING" -> ActionButton(text = "Permintaan Terkirim", enabled = false)
+                        "ACCEPTED" -> ActionButton(text = "Mulai Chat") {
+                            if (mentor != null && currentUserId != null) {
+                                val chatRoomId = createChatId(currentUserId, mentor!!.userId)
+                                navController.navigate("detail_chat/$chatRoomId")
                             }
                         }
-                    )
-                    "PENDING" -> ActionButton(text = "Permintaan Terkirim", enabled = false)
-                    "ACCEPTED" -> ActionButton(text = "Mulai Chat") {
-                        if (mentor != null && currentUserId != null) {
-                            val chatRoomId = createChatId(currentUserId, mentor!!.userId)
-                            navController.navigate("detail_chat/$chatRoomId")
-                        }
                     }
-                    "DECLINED" -> ActionButton(text = "Permintaan Ditolak", enabled = false, isError = true)
                 }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (isLoading && mentor == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (mentor != null) {
+        // Konten utama tidak berubah
+        if (mentor != null) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
@@ -126,43 +103,24 @@ fun DetailMentorScreen(
                 item { DetailMentorAchievementsCard(achievements = mentor!!.achievements ?: emptyList()) }
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-        } else {
+        } else if (!isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(errorMessage ?: "Gagal memuat profil mentor.")
+                Text("Gagal memuat profil mentor.")
             }
         }
     }
 }
-
-
 @Composable
-private fun ActionButton(
-    text: String,
-    enabled: Boolean = true,
-    isError: Boolean = false,
-    onClick: () -> Unit = {}
-) {
-    val buttonColors = if (isError) {
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-        )
-    } else {
-        ButtonDefaults.buttonColors()
-    }
-
+private fun ActionButton(text: String, enabled: Boolean = true, onClick: () -> Unit = {}) {
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().height(50.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = buttonColors
+        shape = RoundedCornerShape(12.dp)
     ) {
         Text(text)
     }
 }
-
 
 @Composable
 private fun DetailMentorHeader(mentor: Mentor) {
@@ -174,18 +132,8 @@ private fun DetailMentorHeader(mentor: Mentor) {
             modifier = Modifier.size(120.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = mentor.name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = mentor.peminatan,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text = mentor.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(text = mentor.peminatan, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
     }
 }
 

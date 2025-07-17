@@ -27,6 +27,7 @@ import com.example.perisaiapps.Screen.AdminScreen.AdminDashboardScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageLombaScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageMentorsScreen
 import com.example.perisaiapps.Screen.AdminScreen.AdminManageUsersScreen
+import com.example.perisaiapps.Screen.AdminScreen.AdminMentorDetailScreen
 import com.example.perisaiapps.Screen.DetailLombaScreen
 import com.example.perisaiapps.Screen.DetailMentorScreen
 import com.example.perisaiapps.Screen.InfoLombaScreen
@@ -216,6 +217,13 @@ fun AppNavigation(startChatId: String? = null) {
         ) { backStackEntry ->
             val lombaId = backStackEntry.arguments?.getString("lombaId")
             AddEditLombaScreen(navController = navController, lombaId = lombaId)
+        }
+        composable(
+            route = "admin_mentor_detail/{mentorId}",
+            arguments = listOf(navArgument("mentorId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mentorId = backStackEntry.arguments?.getString("mentorId") ?: ""
+            AdminMentorDetailScreen(navController = navController, mentorId = mentorId)
         }
         // rute Mentor
         composable("mentor_main_route") {

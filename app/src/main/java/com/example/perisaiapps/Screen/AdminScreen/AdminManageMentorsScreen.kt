@@ -1,7 +1,8 @@
 package com.example.perisaiapps.Screen.AdminScreen
 
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -23,95 +25,46 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.perisaiapps.Model.Mentor
-import com.google.firebase.firestore.FirebaseFirestore
-
-
-// --- Palet Warna (konsisten dengan tema gelap) ---
-private val darkBackground = Color(0xFF120E26)
-private val cardBackground = Color(0xFF1F1A38)
-private val textColorPrimary = Color.White
-private val textColorSecondary = Color.White.copy(alpha = 0.7f)
-private val accentColor = Color(0xFF8A2BE2)
-private val successColor = Color(0xFF00C853)
-private val errorColor = Color(0xFFD50000)
+import com.example.perisaiapps.viewmodel.AdminManageMentorsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminManageMentorsScreen(navController: NavController) {
-    var mentorList by remember { mutableStateOf<List<Mentor>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
+fun AdminManageMentorsScreen(
+    navController: NavController,
+    viewModel: AdminManageMentorsViewModel = viewModel()
+) {
+    val filteredMentorList by viewModel.filteredMentors.collectAsState(initial = emptyList())
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
     var mentorToDelete by remember { mutableStateOf<Mentor?>(null) }
     val context = LocalContext.current
 
-    // Mengambil data mentor dari Firestore
-    LaunchedEffect(Unit) {
-        isLoading = true
-        FirebaseFirestore.getInstance().collection("Mentor")
-            .orderBy("name")
-            .get()
-            .addOnSuccessListener { result ->
-                mentorList = result.documents.mapNotNull { it.toObject(Mentor::class.java) }
-                isLoading = false
-            }
-            .addOnFailureListener { exception ->
-                Log.e("AdminMentors", "Error getting documents: ", exception)
-                errorMessage = "Gagal mengambil data: ${exception.message}"
-                isLoading = false
-            }
-    }
-
-    // Fungsi untuk menghapus mentor
-    val deleteMentorAction: (Mentor) -> Unit = { mentorData ->
-        deleteMentor(
-            mentor = mentorData,
-            onSuccess = {
-                Toast.makeText(context, "Mentor berhasil dihapus", Toast.LENGTH_SHORT).show()
-                mentorList = mentorList.filterNot { it.id == mentorData.id }
-                mentorToDelete = null // <-- Hapus `this.`
-            },
-            onFailure = { error ->
-                Toast.makeText(context, "Gagal menghapus: ${error.message}", Toast.LENGTH_LONG).show()
-                mentorToDelete = null // <-- Hapus `this.`
-            }
-        )
-    }
-
     Scaffold(
-
         topBar = {
             TopAppBar(
-                title = { Text("Kelola Mentor", color = textColorPrimary) },
+                title = { Text("Kelola Mentor") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali", tint = textColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = darkBackground)
+                }
             )
-            if (mentorToDelete != null) {
-                DeleteConfirmationDialog(
-                    mentorName = mentorToDelete!!.name,
-                    onConfirm = { deleteMentorAction(mentorToDelete!!) }, // <-- Kirim seluruh objek mentorToDelete
-                    onDismiss = { mentorToDelete = null }
-                )
-            }
         },
-
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate("add_edit_mentor") },
-                containerColor = accentColor,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Filled.Add, "Tambah Mentor Baru")
             }
         },
-        containerColor = darkBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -119,109 +72,88 @@ fun AdminManageMentorsScreen(navController: NavController) {
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            // Header
             Text(
-                text = "Daftar Mentor Terdaftar",
+                "Daftar Mentor Terdaftar",
                 style = MaterialTheme.typography.titleLarge,
-                color = textColorPrimary,
                 modifier = Modifier.padding(top = 8.dp)
             )
             Text(
-                text = "Ubah atau hapus data mentor dari sini.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = textColorSecondary
+                "Lihat detail, ubah, atau hapus data mentor.",
+                style = MaterialTheme.typography.bodyMedium
             )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 label = { Text("Cari mentor...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Cari") },
+                leadingIcon = { Icon(Icons.Default.Search, "Cari") },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    // --- Warna untuk Teks Input & Kursor ---
-                    focusedTextColor = textColorPrimary,      // Warna teks saat diketik (fokus)
-                    unfocusedTextColor = textColorPrimary,    // Warna teks saat tidak fokus
-                    cursorColor = accentColor,              // Warna kursor
-
-                    // --- Warna untuk Label, Border, Ikon ---
-                    focusedBorderColor = accentColor,         // Warna border saat fokus
-                    unfocusedBorderColor = textColorSecondary,  // Warna border saat tidak fokus
-                    focusedLabelColor = accentColor,          // Warna label saat fokus
-                    unfocusedLabelColor = textColorSecondary, // Warna label saat tidak fokus
-                    focusedLeadingIconColor = accentColor,    // Warna ikon saat fokus
-                    unfocusedLeadingIconColor = textColorSecondary, // Warna ikon saat tidak fokus
-
-                    // Warna background text field
-                    focusedContainerColor = cardBackground,
-                    unfocusedContainerColor = cardBackground,
-                    disabledContainerColor = cardBackground,
-                )
+                shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Konten utama (Loading, Error, Empty, List)
             when {
-                isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = accentColor) }
-                errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Error: $errorMessage", color = errorColor) }
+                isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Error: $errorMessage") }
+                filteredMentorList.isEmpty() && searchQuery.isNotBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Mentor tidak ditemukan") }
+                filteredMentorList.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Belum ada data mentor") }
                 else -> {
-                    val filteredList = mentorList.filter {
-                        it.name.contains(searchQuery, ignoreCase = true) || it.peminatan.contains(searchQuery, ignoreCase = true)
-                    }
-                    if (filteredList.isEmpty()) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(if (searchQuery.isNotBlank()) "Mentor tidak ditemukan" else "Belum ada data mentor", color = textColorSecondary)
-                        }
-                    } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp) // Beri ruang untuk FAB
-                        ) {
-                            items(filteredList, key = { it.id }) { mentor ->
-                                AdminMentorListItem(
-                                    mentor = mentor,
-                                    onEditClick = {
-                                        navController.navigate("add_edit_mentor?mentorId=${mentor.id}")
-                                    },
-                                    onDeleteClick = {
-                                        mentorToDelete = mentor // Tampilkan dialog konfirmasi
-                                    }
-                                )
-                            }
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(filteredMentorList, key = { it.id }) { mentor ->
+                            AdminMentorListItem(
+                                mentor = mentor,
+                                onItemClick = { navController.navigate("admin_mentor_detail/${mentor.id}") },
+                                onEditClick = { navController.navigate("add_edit_mentor?mentorId=${mentor.id}") },
+                                onDeleteClick = { mentorToDelete = mentor }
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Dialog Konfirmasi Hapus
+        // ========================================================
+        // PERBAIKAN UTAMA ADA PADA PEMANGGILAN VIEWMODEL DI SINI
+        // ========================================================
         if (mentorToDelete != null) {
             DeleteConfirmationDialog(
                 mentorName = mentorToDelete!!.name,
-                onConfirm = { deleteMentorAction(mentorToDelete!!) },
+                onConfirm = {
+                    // Panggil fungsi hapus dari ViewModel, bukan fungsi lokal
+                    viewModel.deleteMentor(
+                        mentor = mentorToDelete!!,
+                        onSuccess = { Toast.makeText(context, "Mentor berhasil dihapus", Toast.LENGTH_SHORT).show() },
+                        onFailure = { errorMsg -> Toast.makeText(context, "Gagal menghapus: $errorMsg", Toast.LENGTH_LONG).show() }
+                    )
+                    mentorToDelete = null
+                },
                 onDismiss = { mentorToDelete = null }
             )
         }
     }
 }
 
-// Composable baru untuk item di daftar admin
 @Composable
 private fun AdminMentorListItem(
     mentor: Mentor,
+    onItemClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onItemClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -233,38 +165,32 @@ private fun AdminMentorListItem(
                 contentDescription = "Foto ${mentor.name}",
                 modifier = Modifier
                     .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.tertiary),
                 contentScale = ContentScale.Crop
             )
-
             Spacer(modifier = Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(mentor.name, fontWeight = FontWeight.Bold, color = textColorPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text(mentor.peminatan, color = textColorSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(mentor.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                Text(mentor.peminatan, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (mentor.bersediaKah) "Bersedia" else "Sibuk",
-                    color = if (mentor.bersediaKah) successColor else errorColor,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = if (mentor.bersediaKah) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
             }
-
-            // Tombol Aksi
             Row {
-                IconButton(onClick = onEditClick) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit Mentor", tint = textColorSecondary)
-                }
-                IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Hapus Mentor", tint = errorColor)
-                }
+                IconButton(onClick = onItemClick) { Icon(Icons.Default.RemoveRedEye, "Edit Mentor") }
+                IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, "Edit Mentor") }
+                IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, "Hapus Mentor", tint = MaterialTheme.colorScheme.error) }
             }
         }
     }
 }
 
-// Composable untuk dialog konfirmasi hapus
 @Composable
 private fun DeleteConfirmationDialog(
     mentorName: String,
@@ -273,60 +199,17 @@ private fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Warning, contentDescription = "Peringatan", tint = errorColor) },
+        icon = { Icon(Icons.Default.Warning, "Peringatan") },
         title = { Text("Konfirmasi Hapus") },
-        text = { Text("Apakah Anda yakin ingin menghapus mentor '$mentorName'? Aksi ini tidak dapat dibatalkan.") },
+        text = { Text("Apakah Anda yakin ingin menghapus mentor '$mentorName'? Semua data terkait (termasuk akun login) akan dihapus.") },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = errorColor)
-            ) {
-                Text("Hapus")
-            }
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Hapus") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Batal")
-            }
+            TextButton(onClick = onDismiss) { Text("Batal") }
         }
     )
 }
-
-// Fungsi helper untuk menghapus dokumen mentor dari Firestore
-private fun deleteMentor(mentor: Mentor,
-                         onSuccess: () -> Unit,
-                         onFailure: (Exception) -> Unit)
-{
-
-    // TODO: Implementasikan logika untuk menghapus foto mentor dari Cloudinary jika diperlukan.
-    // Ini biasanya memerlukan backend atau Cloud Function untuk keamanan.
-    val db = FirebaseFirestore.getInstance()
-
-    // Ambil ID dokumen dari koleksi Mentor dan koleksi users
-    val mentorDocRef = db.collection("Mentor").document(mentor.id)
-    val userDocRef = db.collection("users").document(mentor.userId)
-
-    db.runBatch { batch ->
-        batch.delete(mentorDocRef) // Hapus dokumen dari koleksi 'Mentor'
-        batch.delete(userDocRef)   // Hapus dokumen dari koleksi 'users'
-    }
-        .addOnSuccessListener {
-            Log.d("FirestoreDelete", "Dokumen Mentor dan User untuk ${mentor.name} berhasil dihapus.")
-            // TODO: Implementasikan logika untuk menghapus foto dari Cloudinary (memerlukan backend/Cloud Function)
-            onSuccess()
-        }
-        .addOnFailureListener { e ->
-            Log.e("FirestoreDelete", "Gagal menghapus dokumen Mentor dan User.", e)
-            onFailure(e)
-        }
-}
-//    FirebaseFirestore.getInstance().collection("Mentor").document(mentorId)
-//        .delete()
-//        .addOnSuccessListener {
-//            Log.d("FirestoreDelete", "Mentor document $mentorId successfully deleted.")
-//            onSuccess()
-//        }
-//        .addOnFailureListener { e ->
-//            Log.e("FirestoreDelete", "Error deleting mentor document $mentorId", e)
-//            onFailure(e)
-//        }
