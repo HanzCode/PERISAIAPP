@@ -302,7 +302,6 @@ private fun DeleteConfirmationDialog(userName: String, onConfirm: () -> Unit, on
 }
 
 
-// --- Logika Backend (Fungsi Helper) ---
 
 private fun changeUserRoleAndHandleProfile(context: Context, user: UserProfile, newRole: String, onSuccess: () -> Unit) {
     val db = FirebaseFirestore.getInstance()

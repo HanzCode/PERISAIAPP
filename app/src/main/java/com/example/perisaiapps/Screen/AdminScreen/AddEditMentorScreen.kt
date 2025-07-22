@@ -542,7 +542,7 @@ private fun updateExistingMentor(
 }
 
 private fun createUserProfile(uid: String, email: String, name: String, onComplete: (Exception?) -> Unit) {
-    val userDoc = mapOf("email" to email, "displayName" to name, "role" to "mentor")
+    val userDoc = mapOf("userId" to uid,"email" to email, "displayName" to name, "role" to "mentor")
     FirebaseFirestore.getInstance().collection("users").document(uid)
         .set(userDoc)
         .addOnCompleteListener { task -> onComplete(task.exception) }
